@@ -1,3 +1,5 @@
+import json
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -195,6 +197,64 @@ class TestTargetSelection:
 
         with pytest.raises(SourceError, match="Source directory does not exist"):
             service.run()
+
+
+class TestMissingAndMalformedFiles:
+    def test_missing_event_and_lineup_files_are_reported(
+        self, tmp_path: Path, raw_source_dir: Path, session: Session
+    ) -> None:
+        shutil.copytree(raw_source_dir, tmp_path / "raw")
+        shutil.rmtree(tmp_path / "raw" / "events")
+        shutil.rmtree(tmp_path / "raw" / "lineups")
+
+        summary = IngestionService(SourceLoader(tmp_path / "raw"), session).run()
+        session.commit()
+
+        assert summary.matches_processed == 2
+        assert summary.events_imported == 0
+        assert summary.lineups_imported == 0
+        reasons = [record.reason for record in summary.rejected]
+        assert reasons.count("Event file not found") == 2
+        assert reasons.count("Lineup file not found") == 2
+
+    def test_malformed_match_is_skipped_and_the_rest_imported(
+        self, tmp_path: Path, raw_source_dir: Path, session: Session
+    ) -> None:
+        shutil.copytree(raw_source_dir, tmp_path / "raw")
+        matches_file = tmp_path / "raw" / "matches" / "16" / "1.json"
+        records = json.loads(matches_file.read_text())
+        records[0]["match_date"] = "26-05-2018"
+        matches_file.write_text(json.dumps(records))
+
+        summary = IngestionService(SourceLoader(tmp_path / "raw"), session).run()
+        session.commit()
+
+        assert summary.matches_skipped == 1
+        assert summary.matches_processed == 1
+        assert _count(session, Match) == 1
+        rejection = next(r for r in summary.rejected if "match_date" in r.reason)
+        assert rejection.match_external_id == 7298
+
+    def test_malformed_competitions_entry_is_skipped(
+        self, tmp_path: Path, raw_source_dir: Path, session: Session
+    ) -> None:
+        shutil.copytree(raw_source_dir, tmp_path / "raw")
+        competitions_file = tmp_path / "raw" / "competitions.json"
+        records = json.loads(competitions_file.read_text())
+        competitions_file.write_text(json.dumps([{"competition_id": None}, *records]))
+
+        summary = IngestionService(SourceLoader(tmp_path / "raw"), session).run()
+
+        assert summary.matches_processed == 2
+
+    def test_invalid_matches_file_structure_fails_the_command(
+        self, tmp_path: Path, raw_source_dir: Path, session: Session
+    ) -> None:
+        shutil.copytree(raw_source_dir, tmp_path / "raw")
+        (tmp_path / "raw" / "matches" / "16" / "1.json").write_text('{"not": "an array"}')
+
+        with pytest.raises(SourceError, match="Expected a JSON array"):
+            IngestionService(SourceLoader(tmp_path / "raw"), session).run()
 
 
 class TestSummary:

@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from typer.testing import CliRunner
 
-from app.core.exceptions import ConfigurationError
+from app.core.exceptions import ConfigurationError, PersistenceError
 from app.db.models import Event, Match
 from app.ingestion import cli
 
@@ -109,6 +109,23 @@ def test_invalid_configuration_exits_non_zero(monkeypatch: pytest.MonkeyPatch) -
 
     assert result.exit_code == cli.EXIT_CONFIGURATION
     assert "DATABASE_URL" in result.output
+
+
+def test_persistence_failure_exits_non_zero(
+    monkeypatch: pytest.MonkeyPatch, raw_source_dir: Path
+) -> None:
+    @contextmanager
+    def _failing_scope() -> Iterator[Session]:
+        raise PersistenceError("Database transaction failed: unique violation")
+        yield  # pragma: no cover
+
+    monkeypatch.setattr(cli, "check_database_connection", lambda: True)
+    monkeypatch.setattr(cli, "session_scope", _failing_scope)
+
+    result = runner.invoke(cli.app, ["ingest", "--source-dir", str(raw_source_dir)])
+
+    assert result.exit_code == cli.EXIT_DATABASE
+    assert "unique violation" in result.output
 
 
 def test_database_url_credentials_are_not_printed() -> None:
