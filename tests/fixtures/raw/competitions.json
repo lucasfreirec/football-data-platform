@@ -1,7 +1,7 @@
 [
   {
     "competition_id": 16,
-    "season_id": 4,
+    "season_id": 1,
     "country_name": "Europe",
     "competition_name": "Champions League",
     "competition_gender": "male",
@@ -13,7 +13,7 @@
   },
   {
     "competition_id": 16,
-    "season_id": 1,
+    "season_id": 4,
     "country_name": "Europe",
     "competition_name": "Champions League",
     "competition_gender": "male",

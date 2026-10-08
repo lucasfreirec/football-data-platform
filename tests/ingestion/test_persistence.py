@@ -162,7 +162,7 @@ class TestMatch:
         assert match.home_team.name == "Real Madrid"
         assert match.away_team.name == "Liverpool"
         assert match.competition.statsbomb_id == 16
-        assert match.season.statsbomb_id == 4
+        assert match.season.statsbomb_id == 1
 
     def test_reimport_does_not_duplicate_anything(
         self, session: Session, repository: IngestionRepository, raw_matches: list[Any]

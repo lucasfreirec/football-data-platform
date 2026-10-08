@@ -21,8 +21,7 @@ def create_db_engine(database_url: str, *, echo: bool = False) -> Engine:
 
 @lru_cache(maxsize=1)
 def get_engine() -> Engine:
-    settings = get_settings()
-    return create_db_engine(settings.database_url, echo=settings.app_env == "development")
+    return create_db_engine(get_settings().database_url)
 
 
 @lru_cache(maxsize=1)

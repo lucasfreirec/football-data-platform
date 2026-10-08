@@ -55,7 +55,7 @@ def raw_competitions() -> list[dict[str, Any]]:
 
 @pytest.fixture
 def raw_matches() -> list[dict[str, Any]]:
-    return _load(RAW_SOURCE_DIR / "matches" / "16" / "4.json")
+    return _load(RAW_SOURCE_DIR / "matches" / "16" / "1.json")
 
 
 @pytest.fixture

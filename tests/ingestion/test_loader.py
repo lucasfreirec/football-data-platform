@@ -12,7 +12,7 @@ def test_loads_every_fixture_file(raw_source_dir: Path) -> None:
     loader.ensure_available()
 
     assert len(loader.load_competitions()) == 2
-    assert len(loader.load_matches(16, 4)) == 2
+    assert len(loader.load_matches(16, 1)) == 2
     assert len(loader.load_events(7298)) == 3
     assert len(loader.load_lineups(7298)) == 2
 
@@ -20,7 +20,7 @@ def test_loads_every_fixture_file(raw_source_dir: Path) -> None:
 def test_paths_are_derived_not_hard_coded(raw_source_dir: Path) -> None:
     loader = SourceLoader(raw_source_dir)
 
-    assert loader.matches_path(16, 4) == raw_source_dir / "matches" / "16" / "4.json"
+    assert loader.matches_path(16, 1) == raw_source_dir / "matches" / "16" / "1.json"
     assert loader.events_path(7298) == raw_source_dir / "events" / "7298.json"
     assert loader.lineups_path(7298) == raw_source_dir / "lineups" / "7298.json"
 

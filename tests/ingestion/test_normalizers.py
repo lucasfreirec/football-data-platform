@@ -21,7 +21,7 @@ class TestCompetition:
         assert result.competition.country_name == "Europe"
         assert result.competition.gender == "male"
         assert result.competition.format is None
-        assert result.season.statsbomb_id == 4
+        assert result.season.statsbomb_id == 1
         assert result.season.name == "2017/2018"
 
     def test_missing_competition_id_rejected(self, raw_competitions: list[dict[str, Any]]) -> None:
@@ -43,7 +43,7 @@ class TestMatch:
 
         assert match.statsbomb_id == 7298
         assert match.competition.statsbomb_id == 16
-        assert match.season.statsbomb_id == 4
+        assert match.season.statsbomb_id == 1
         assert match.home_team.statsbomb_id == 220
         assert match.home_team.name == "Real Madrid"
         assert match.home_team.country_name == "Spain"
