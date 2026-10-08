@@ -1,0 +1,116 @@
+[
+  {
+    "team_id": 220,
+    "team_name": "Real Madrid",
+    "lineup": [
+      {
+        "player_id": 3509,
+        "player_name": "Keylor Navas Gamboa",
+        "player_nickname": "Keylor Navas",
+        "jersey_number": 1,
+        "country": { "id": 49, "name": "Costa Rica" },
+        "cards": [],
+        "positions": [
+          {
+            "position_id": 1,
+            "position": "Goalkeeper",
+            "from": "00:00",
+            "to": null,
+            "from_period": 1,
+            "to_period": null,
+            "start_reason": "Starting XI",
+            "end_reason": "Final Whistle"
+          }
+        ]
+      },
+      {
+        "player_id": 3604,
+        "player_name": "Karim Benzema",
+        "player_nickname": null,
+        "jersey_number": 9,
+        "country": { "id": 78, "name": "France" },
+        "cards": [],
+        "positions": [
+          {
+            "position_id": 23,
+            "position": "Center Forward",
+            "from": "00:00",
+            "to": "88:00",
+            "from_period": 1,
+            "to_period": 2,
+            "start_reason": "Starting XI",
+            "end_reason": "Substitution - Off"
+          }
+        ]
+      },
+      {
+        "player_id": 3639,
+        "player_name": "Gareth Frank Bale",
+        "player_nickname": "Gareth Bale",
+        "jersey_number": 11,
+        "country": { "id": 240, "name": "Wales" },
+        "cards": [],
+        "positions": [
+          {
+            "position_id": 23,
+            "position": "Center Forward",
+            "from": "61:00",
+            "to": null,
+            "from_period": 2,
+            "to_period": null,
+            "start_reason": "Substitution - On",
+            "end_reason": "Final Whistle"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "team_id": 24,
+    "team_name": "Liverpool",
+    "lineup": [
+      {
+        "player_id": 3532,
+        "player_name": "Roberto Firmino Barbosa de Oliveira",
+        "player_nickname": "Roberto Firmino",
+        "jersey_number": 9,
+        "country": { "id": 31, "name": "Brazil" },
+        "cards": [],
+        "positions": [
+          {
+            "position_id": 22,
+            "position": "Right Center Forward",
+            "from": "00:00",
+            "to": null,
+            "from_period": 1,
+            "to_period": null,
+            "start_reason": "Starting XI",
+            "end_reason": "Final Whistle"
+          }
+        ]
+      },
+      {
+        "player_id": 3531,
+        "player_name": "Sadio Mané",
+        "player_nickname": null,
+        "jersey_number": 10,
+        "country": { "id": 194, "name": "Senegal" },
+        "cards": [
+          { "time": "77:12", "card_type": "Yellow Card", "reason": "Foul", "period": 2 }
+        ],
+        "positions": [
+          {
+            "position_id": 24,
+            "position": "Left Center Forward",
+            "from": "00:00",
+            "to": null,
+            "from_period": 1,
+            "to_period": null,
+            "start_reason": "Starting XI",
+            "end_reason": "Final Whistle"
+          }
+        ]
+      }
+    ]
+  }
+]
