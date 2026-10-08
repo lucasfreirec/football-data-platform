@@ -1,0 +1,49 @@
+[
+  {
+    "id": "0a1b2c3d-0000-4000-8000-00000000000a",
+    "index": 1,
+    "period": 1,
+    "timestamp": "00:00:00.000",
+    "minute": 0,
+    "second": 0,
+    "type": { "id": 35, "name": "Starting XI" },
+    "possession": 1,
+    "possession_team": { "id": 220, "name": "Real Madrid" },
+    "team": { "id": 220, "name": "Real Madrid" }
+  },
+  {
+    "id": "0a1b2c3d-0000-4000-8000-00000000000b",
+    "index": 2,
+    "period": 1,
+    "timestamp": "00:00:01.000",
+    "type": { "id": 30, "name": "Pass" },
+    "team": { "id": 220, "name": "Real Madrid" },
+    "player": { "id": 3604, "name": "Karim Benzema" },
+    "location": [60.0, 40.0, 12.0]
+  },
+  {
+    "id": "0a1b2c3d-0000-4000-8000-00000000000c",
+    "index": 3,
+    "period": 1,
+    "timestamp": "not-a-timestamp",
+    "type": { "id": 30, "name": "Pass" },
+    "team": { "id": 220, "name": "Real Madrid" }
+  },
+  {
+    "id": "0a1b2c3d-0000-4000-8000-00000000000d",
+    "index": 4,
+    "period": 1,
+    "timestamp": "00:00:04.000",
+    "type": { "id": 30, "name": "Pass" },
+    "team": { "id": 220, "name": "Real Madrid" },
+    "location": [95.5, 21.25]
+  },
+  {
+    "id": "0a1b2c3d-0000-4000-8000-00000000000e",
+    "index": 4,
+    "period": 1,
+    "timestamp": "00:00:05.000",
+    "type": { "id": 30, "name": "Pass" },
+    "team": { "id": 220, "name": "Real Madrid" }
+  }
+]

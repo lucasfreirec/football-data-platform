@@ -8,14 +8,17 @@ downgrade a rich record (a match's ``home_team``).
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import Competition, Match, Player, Season, Team
+from app.db.models import Competition, Event, Lineup, Match, Player, Season, Team
 from app.ingestion.normalizers import (
     NormalizedCompetition,
+    NormalizedEvent,
+    NormalizedLineupEntry,
     NormalizedMatch,
     NormalizedPlayer,
     NormalizedSeason,
@@ -139,6 +142,74 @@ class IngestionRepository:
         else:
             _apply(match, values)
         return match
+
+    def upsert_events(self, match: Match, records: Sequence[NormalizedEvent]) -> int:
+        """Write a match's events, returning how many rows were inserted or updated."""
+        existing = {
+            event.statsbomb_id: event
+            for event in self.session.scalars(select(Event).where(Event.match_id == match.id))
+        }
+        for record in records:
+            values: dict[str, Any] = {
+                "index_in_match": record.index_in_match,
+                "type_name": record.type_name,
+                "period": record.period,
+                "timestamp": record.timestamp,
+                "minute": record.minute,
+                "second": record.second,
+                "possession": record.possession,
+                "possession_team_id": self._team_id(record.possession_team),
+                "team_id": self._team_id(record.team),
+                "player_id": self._player_id(record.player),
+                "location_x": record.location_x,
+                "location_y": record.location_y,
+                "outcome_name": record.outcome_name,
+                "raw_data": record.raw_data,
+            }
+            event = existing.get(record.statsbomb_id)
+            if event is None:
+                event = Event(
+                    statsbomb_id=record.statsbomb_id, match_id=match.id, **_present(values)
+                )
+                self.session.add(event)
+                existing[record.statsbomb_id] = event
+            else:
+                _apply(event, values)
+        self.session.flush()
+        return len(records)
+
+    def upsert_lineups(self, match: Match, records: Sequence[NormalizedLineupEntry]) -> int:
+        """Write a match's squad rows, returning how many were inserted or updated."""
+        existing = {
+            (lineup.team_id, lineup.player_id): lineup
+            for lineup in self.session.scalars(select(Lineup).where(Lineup.match_id == match.id))
+        }
+        for record in records:
+            team = self.upsert_team(record.team)
+            player = self.upsert_player(record.player)
+            values: dict[str, Any] = {
+                "jersey_number": record.jersey_number,
+                "position_name": record.position_name,
+                "is_starter": record.is_starter,
+                "raw_data": record.raw_data,
+            }
+            lineup = existing.get((team.id, player.id))
+            if lineup is None:
+                lineup = Lineup(
+                    match_id=match.id, team_id=team.id, player_id=player.id, **_present(values)
+                )
+                self.session.add(lineup)
+                existing[(team.id, player.id)] = lineup
+            else:
+                _apply(lineup, values)
+        self.session.flush()
+        return len(records)
+
+    def _team_id(self, record: NormalizedTeam | None) -> int | None:
+        return None if record is None else self.upsert_team(record).id
+
+    def _player_id(self, record: NormalizedPlayer | None) -> int | None:
+        return None if record is None else self.upsert_player(record).id
 
 
 def _present(values: dict[str, Any]) -> dict[str, Any]:

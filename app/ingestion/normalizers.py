@@ -134,6 +134,14 @@ class NormalizedLineupEntry:
     raw_data: dict[str, Any] | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class LineupBlock:
+    """A validated team header plus its still-raw player entries."""
+
+    team: NormalizedTeam
+    players: list[Any]
+
+
 def normalize_competition_season(raw: Any) -> NormalizedCompetitionSeason:
     """Normalize one entry of ``competitions.json``."""
     record = require_mapping(raw, "competition")
@@ -217,11 +225,11 @@ def normalize_event(raw: Any) -> NormalizedEvent:
     )
 
 
-def normalize_lineup_team(raw: Any) -> list[NormalizedLineupEntry]:
-    """Normalize one team block of ``lineups/<match_id>.json``.
+def normalize_lineup_block(raw: Any) -> LineupBlock:
+    """Validate one team block of ``lineups/<match_id>.json``.
 
-    Raises :class:`ValidationError` for an invalid team block; individual player
-    entries that fail validation propagate so the caller can skip just that row.
+    Player entries are returned unparsed so a caller can skip just the invalid
+    ones rather than discarding the whole squad.
     """
     record = require_mapping(raw, "lineup")
     team = NormalizedTeam(
@@ -231,8 +239,13 @@ def normalize_lineup_team(raw: Any) -> list[NormalizedLineupEntry]:
     players = record.get("lineup")
     if not isinstance(players, list):
         raise ValidationError(f"Expected an array for 'lineup.lineup' of team {team.statsbomb_id}")
+    return LineupBlock(team=team, players=players)
 
-    return [normalize_lineup_entry(team, entry) for entry in players]
+
+def normalize_lineup_team(raw: Any) -> list[NormalizedLineupEntry]:
+    """Normalize a whole team block, failing on the first invalid player entry."""
+    block = normalize_lineup_block(raw)
+    return [normalize_lineup_entry(block.team, entry) for entry in block.players]
 
 
 def normalize_lineup_entry(team: NormalizedTeam, raw: Any) -> NormalizedLineupEntry:

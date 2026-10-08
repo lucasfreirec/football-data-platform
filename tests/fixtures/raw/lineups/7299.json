@@ -1,0 +1,26 @@
+[
+  {
+    "team_id": 220,
+    "team_name": "Real Madrid",
+    "lineup": [
+      {
+        "player_id": 3604,
+        "player_name": "Karim Benzema",
+        "jersey_number": 9,
+        "positions": [
+          { "position_id": 23, "position": "Center Forward", "start_reason": "Starting XI" }
+        ]
+      },
+      {
+        "player_name": "Missing Identifier",
+        "jersey_number": 99,
+        "positions": []
+      }
+    ]
+  },
+  {
+    "team_id": 217,
+    "team_name": "Barcelona",
+    "lineup": { "not": "an array" }
+  }
+]

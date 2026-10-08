@@ -30,8 +30,8 @@ def test_presence_checks(raw_source_dir: Path) -> None:
 
     assert loader.has_events(7298) is True
     assert loader.has_lineups(7298) is True
-    assert loader.has_events(7299) is False
-    assert loader.has_lineups(7299) is False
+    assert loader.has_events(9999) is False
+    assert loader.has_lineups(9999) is False
 
 
 def test_missing_source_directory_raises(tmp_path: Path) -> None:
