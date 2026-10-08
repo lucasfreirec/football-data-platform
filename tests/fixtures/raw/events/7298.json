@@ -1,0 +1,77 @@
+[
+  {
+    "id": "0a1b2c3d-0000-4000-8000-000000000001",
+    "index": 1,
+    "period": 1,
+    "timestamp": "00:00:00.000",
+    "minute": 0,
+    "second": 0,
+    "type": { "id": 35, "name": "Starting XI" },
+    "possession": 1,
+    "possession_team": { "id": 220, "name": "Real Madrid" },
+    "play_pattern": { "id": 1, "name": "Regular Play" },
+    "team": { "id": 220, "name": "Real Madrid" },
+    "duration": 0.0,
+    "tactics": {
+      "formation": 4231,
+      "lineup": [
+        {
+          "player": { "id": 3509, "name": "Keylor Navas Gamboa" },
+          "position": { "id": 1, "name": "Goalkeeper" },
+          "jersey_number": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": "0a1b2c3d-0000-4000-8000-000000000002",
+    "index": 2,
+    "period": 1,
+    "timestamp": "00:00:00.520",
+    "minute": 0,
+    "second": 0,
+    "type": { "id": 30, "name": "Pass" },
+    "possession": 2,
+    "possession_team": { "id": 24, "name": "Liverpool" },
+    "play_pattern": { "id": 9, "name": "From Kick Off" },
+    "team": { "id": 24, "name": "Liverpool" },
+    "player": { "id": 3532, "name": "Roberto Firmino Barbosa de Oliveira" },
+    "position": { "id": 22, "name": "Right Center Forward" },
+    "location": [60.0, 40.1],
+    "duration": 0.813,
+    "under_pressure": true,
+    "pass": {
+      "recipient": { "id": 3531, "name": "Sadio Mané" },
+      "length": 10.5,
+      "angle": -1.2,
+      "height": { "id": 1, "name": "Ground Pass" },
+      "body_part": { "id": 40, "name": "Right Foot" },
+      "outcome": { "id": 9, "name": "Incomplete" }
+    }
+  },
+  {
+    "id": "0a1b2c3d-0000-4000-8000-000000000003",
+    "index": 3,
+    "period": 2,
+    "timestamp": "00:06:33.100",
+    "minute": 51,
+    "second": 33,
+    "type": { "id": 16, "name": "Shot" },
+    "possession": 54,
+    "possession_team": { "id": 220, "name": "Real Madrid" },
+    "play_pattern": { "id": 1, "name": "Regular Play" },
+    "team": { "id": 220, "name": "Real Madrid" },
+    "player": { "id": 3604, "name": "Karim Benzema" },
+    "position": { "id": 23, "name": "Center Forward" },
+    "location": [112.0, 38.0],
+    "duration": 0.42,
+    "shot": {
+      "statsbomb_xg": 0.42,
+      "end_location": [120.0, 40.0, 0.4],
+      "technique": { "id": 93, "name": "Normal" },
+      "body_part": { "id": 40, "name": "Right Foot" },
+      "type": { "id": 87, "name": "Open Play" },
+      "outcome": { "id": 97, "name": "Goal" }
+    }
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "competition_id": 16,
+    "season_id": 4,
+    "country_name": "Europe",
+    "competition_name": "Champions League",
+    "competition_gender": "male",
+    "competition_youth": false,
+    "competition_international": false,
+    "season_name": "2017/2018",
+    "match_updated": "2021-04-20T03:24:33.532", 
+    "match_available": "2021-04-20T03:24:33.532"
+  },
+  {
+    "competition_id": 16,
+    "season_id": 1,
+    "country_name": "Europe",
+    "competition_name": "Champions League",
+    "competition_gender": "male",
+    "competition_youth": false,
+    "competition_international": false,
+    "season_name": "2018/2019",
+    "match_updated": "2021-04-20T03:24:33.532",
+    "match_available": "2021-04-20T03:24:33.532"
+  }
+]

@@ -1,0 +1,69 @@
+[
+  {
+    "match_id": 7298,
+    "match_date": "2018-05-26",
+    "kick_off": "21:45:00.000",
+    "competition": {
+      "competition_id": 16,
+      "country_name": "Europe",
+      "competition_name": "Champions League"
+    },
+    "season": {
+      "season_id": 4,
+      "season_name": "2017/2018"
+    },
+    "home_team": {
+      "home_team_id": 220,
+      "home_team_name": "Real Madrid",
+      "home_team_gender": "male",
+      "home_team_group": null,
+      "country": { "id": 214, "name": "Spain" }
+    },
+    "away_team": {
+      "away_team_id": 24,
+      "away_team_name": "Liverpool",
+      "away_team_gender": "male",
+      "away_team_group": null,
+      "country": { "id": 68, "name": "England" }
+    },
+    "home_score": 3,
+    "away_score": 1,
+    "match_status": "available",
+    "last_updated": "2020-07-29T05:00",
+    "match_week": 7,
+    "competition_stage": { "id": 26, "name": "Final" },
+    "stadium": { "id": 4654, "name": "NSK Olimpijs'kyj" },
+    "referee": { "id": 186, "name": "M. Mažić" }
+  },
+  {
+    "match_id": 7299,
+    "match_date": "2018-05-01",
+    "kick_off": "20:45:00.000",
+    "competition": {
+      "competition_id": 16,
+      "country_name": "Europe",
+      "competition_name": "Champions League"
+    },
+    "season": {
+      "season_id": 4,
+      "season_name": "2017/2018"
+    },
+    "home_team": {
+      "home_team_id": 220,
+      "home_team_name": "Real Madrid",
+      "home_team_gender": "male",
+      "country": { "id": 214, "name": "Spain" }
+    },
+    "away_team": {
+      "away_team_id": 217,
+      "away_team_name": "Barcelona",
+      "away_team_gender": "male",
+      "country": { "id": 214, "name": "Spain" }
+    },
+    "home_score": 2,
+    "away_score": 2,
+    "match_status": "available",
+    "last_updated": "2020-07-29T05:00",
+    "competition_stage": { "id": 15, "name": "Semi-finals" }
+  }
+]
