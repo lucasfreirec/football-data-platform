@@ -5,10 +5,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import Boolean, ForeignKey, Integer, String, UniqueConstraint
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base, TimestampMixin
+from app.db.base import Base, JsonDict, TimestampMixin
 from app.db.models.player import Player
 from app.db.models.team import Team
 
@@ -29,7 +28,7 @@ class Lineup(TimestampMixin, Base):
     jersey_number: Mapped[int | None] = mapped_column(Integer)
     position_name: Mapped[str | None] = mapped_column(String(64))
     is_starter: Mapped[bool | None] = mapped_column(Boolean)
-    raw_data: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    raw_data: Mapped[dict[str, Any] | None] = mapped_column(JsonDict)
 
     match: Mapped[Match] = relationship(back_populates="lineups")
     team: Mapped[Team] = relationship()

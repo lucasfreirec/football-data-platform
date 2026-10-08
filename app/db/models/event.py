@@ -10,10 +10,9 @@ from datetime import time
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import Float, ForeignKey, Integer, String, Time, UniqueConstraint
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base, TimestampMixin
+from app.db.base import Base, JsonDict, TimestampMixin
 from app.db.models.player import Player
 from app.db.models.team import Team
 
@@ -43,7 +42,7 @@ class Event(TimestampMixin, Base):
     location_x: Mapped[float | None] = mapped_column(Float)
     location_y: Mapped[float | None] = mapped_column(Float)
     outcome_name: Mapped[str | None] = mapped_column(String(64))
-    raw_data: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    raw_data: Mapped[dict[str, Any] | None] = mapped_column(JsonDict)
 
     match: Mapped[Match] = relationship(back_populates="events")
     team: Mapped[Team | None] = relationship(foreign_keys=[team_id])

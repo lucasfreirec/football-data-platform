@@ -4,8 +4,12 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, MetaData, func
+from sqlalchemy import JSON, DateTime, MetaData, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+# JSONB in PostgreSQL; plain JSON elsewhere so unit tests can run without Docker.
+JsonDict = JSON().with_variant(JSONB(), "postgresql")
 
 # Predictable constraint names keep Alembic autogenerate diffs stable.
 NAMING_CONVENTION = {

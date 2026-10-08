@@ -1,10 +1,14 @@
 import json
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
 import pytest
+from sqlalchemy import Engine, create_engine, event
+from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.db.models import Base
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 RAW_SOURCE_DIR = FIXTURES_DIR / "raw"
@@ -14,6 +18,29 @@ RAW_SOURCE_DIR = FIXTURES_DIR / "raw"
 def _clear_settings_cache() -> None:
     """Keep the settings singleton from leaking between tests."""
     get_settings.cache_clear()
+
+
+@pytest.fixture
+def engine() -> Iterator[Engine]:
+    """In-memory database with the full schema, so unit tests need no Docker."""
+    engine = create_engine("sqlite://")
+
+    @event.listens_for(engine, "connect")
+    def _enforce_foreign_keys(dbapi_connection: Any, _record: Any) -> None:
+        dbapi_connection.execute("PRAGMA foreign_keys=ON")
+
+    Base.metadata.create_all(engine)
+    try:
+        yield engine
+    finally:
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+@pytest.fixture
+def session(engine: Engine) -> Iterator[Session]:
+    with Session(engine, expire_on_commit=False) as session:
+        yield session
 
 
 @pytest.fixture
