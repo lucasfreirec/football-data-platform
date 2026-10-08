@@ -49,6 +49,9 @@ _EVENT_DETAIL_KEYS = (
     "injury_stoppage",
 )
 
+# Bulky nested payloads that would make raw_data a second copy of the source.
+_EVENT_DETAIL_EXCLUDED_KEYS = frozenset({"freeze_frame"})
+
 
 @dataclass(frozen=True, slots=True)
 class NormalizedCompetition:
@@ -326,7 +329,12 @@ def _event_detail(record: dict[str, Any]) -> tuple[str | None, dict[str, Any] | 
     for key in _EVENT_DETAIL_KEYS:
         value = record.get(key)
         if isinstance(value, dict):
-            return key, value
+            trimmed = {
+                name: item
+                for name, item in value.items()
+                if name not in _EVENT_DETAIL_EXCLUDED_KEYS
+            }
+            return key, trimmed or None
     return None, None
 
 

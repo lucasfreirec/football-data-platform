@@ -120,6 +120,11 @@ class IngestionService:
         )
 
         matches_file = str(self.loader.matches_path(competition_id, season_id))
+
+        # competitions.json carries fields the match records omit, so persist it first.
+        competition = self.repository.upsert_competition(target.competition)
+        self.repository.upsert_season(competition, target.season)
+
         for raw_match in self.loader.load_matches(competition_id, season_id):
             match_record = self._normalize_match(raw_match, matches_file, summary)
             if match_record is None:

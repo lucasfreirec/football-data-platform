@@ -6,6 +6,7 @@ from typing import Any
 import pytest
 from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.orm import Session
+from sqlalchemy.pool import StaticPool
 
 from app.core.config import get_settings
 from app.db.models import Base
@@ -22,8 +23,16 @@ def _clear_settings_cache() -> None:
 
 @pytest.fixture
 def engine() -> Iterator[Engine]:
-    """In-memory database with the full schema, so unit tests need no Docker."""
-    engine = create_engine("sqlite://")
+    """In-memory database with the full schema, so unit tests need no Docker.
+
+    StaticPool keeps one connection so the TestClient's worker thread sees the
+    same in-memory database.
+    """
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
 
     @event.listens_for(engine, "connect")
     def _enforce_foreign_keys(dbapi_connection: Any, _record: Any) -> None:
