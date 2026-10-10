@@ -13,6 +13,7 @@ from app.db.models import Base
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 RAW_SOURCE_DIR = FIXTURES_DIR / "raw"
+V2_SOURCE_DIR = FIXTURES_DIR / "v2" / "raw"
 
 
 @pytest.fixture(autouse=True)
@@ -55,6 +56,12 @@ def session(engine: Engine) -> Iterator[Session]:
 @pytest.fixture
 def raw_source_dir() -> Path:
     return RAW_SOURCE_DIR
+
+
+@pytest.fixture
+def v2_source_dir() -> Path:
+    """Two season-1 matches plus one season-2 match, with pass/shot detail cases."""
+    return V2_SOURCE_DIR
 
 
 @pytest.fixture

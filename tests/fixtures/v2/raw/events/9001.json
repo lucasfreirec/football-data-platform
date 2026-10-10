@@ -1,0 +1,155 @@
+[
+  {
+    "id": "90010000-0000-4000-8000-000000000001", "index": 1, "period": 1,
+    "timestamp": "00:00:00.000", "minute": 0, "second": 0,
+    "type": { "id": 35, "name": "Starting XI" },
+    "possession": 1, "possession_team": { "id": 101, "name": "Alpha FC" },
+    "team": { "id": 101, "name": "Alpha FC" }
+  },
+  {
+    "id": "90010000-0000-4000-8000-000000000002", "index": 2, "period": 1,
+    "timestamp": "00:00:00.000", "minute": 0, "second": 0,
+    "type": { "id": 35, "name": "Starting XI" },
+    "possession": 1, "possession_team": { "id": 101, "name": "Alpha FC" },
+    "team": { "id": 102, "name": "Beta FC" }
+  },
+  {
+    "id": "90010000-0000-4000-8000-000000000003", "index": 3, "period": 1,
+    "timestamp": "00:00:05.000", "minute": 0, "second": 5,
+    "type": { "id": 30, "name": "Pass" },
+    "possession": 2, "possession_team": { "id": 101, "name": "Alpha FC" },
+    "team": { "id": 101, "name": "Alpha FC" },
+    "player": { "id": 1001, "name": "Ana Alpha" },
+    "location": [50.0, 40.0],
+    "pass": {
+      "recipient": { "id": 1002, "name": "Ben Alpha" },
+      "length": 12.5,
+      "angle": 0.3,
+      "height": { "id": 1, "name": "Ground Pass" },
+      "end_location": [60.0, 40.0],
+      "body_part": { "id": 40, "name": "Right Foot" },
+      "type": { "id": 65, "name": "Recovery" }
+    }
+  },
+  {
+    "id": "90010000-0000-4000-8000-000000000004", "index": 4, "period": 1,
+    "timestamp": "00:00:20.000", "minute": 0, "second": 20,
+    "type": { "id": 30, "name": "Pass" },
+    "possession": 2, "possession_team": { "id": 101, "name": "Alpha FC" },
+    "team": { "id": 101, "name": "Alpha FC" },
+    "player": { "id": 1001, "name": "Ana Alpha" },
+    "location": [60.0, 40.0],
+    "pass": {
+      "length": 30.1,
+      "angle": -0.5,
+      "height": { "id": 3, "name": "High Pass" },
+      "end_location": [80.0, 10.0],
+      "body_part": { "id": 38, "name": "Left Foot" },
+      "outcome": { "id": 9, "name": "Incomplete" },
+      "switch": true
+    }
+  },
+  {
+    "id": "90010000-0000-4000-8000-000000000005", "index": 5, "period": 1,
+    "timestamp": "00:01:00.000", "minute": 1, "second": 0,
+    "type": { "id": 30, "name": "Pass" },
+    "possession": 3, "possession_team": { "id": 101, "name": "Alpha FC" },
+    "team": { "id": 101, "name": "Alpha FC" },
+    "player": { "id": 1002, "name": "Ben Alpha" },
+    "location": [100.0, 60.0],
+    "pass": {
+      "recipient": { "id": 1001, "name": "Ana Alpha" },
+      "length": 22.0,
+      "angle": 2.5,
+      "height": { "id": 2, "name": "Low Pass" },
+      "end_location": [105.0, 40.0],
+      "body_part": { "id": 40, "name": "Right Foot" },
+      "cross": true,
+      "goal_assist": true,
+      "assisted_shot_id": "90010000-0000-4000-8000-000000000006"
+    }
+  },
+  {
+    "id": "90010000-0000-4000-8000-000000000006", "index": 6, "period": 1,
+    "timestamp": "00:01:03.000", "minute": 1, "second": 3,
+    "type": { "id": 16, "name": "Shot" },
+    "possession": 3, "possession_team": { "id": 101, "name": "Alpha FC" },
+    "team": { "id": 101, "name": "Alpha FC" },
+    "player": { "id": 1001, "name": "Ana Alpha" },
+    "location": [108.0, 40.0],
+    "shot": {
+      "statsbomb_xg": 0.25,
+      "end_location": [120.0, 40.0, 1.2],
+      "key_pass_id": "90010000-0000-4000-8000-000000000005",
+      "technique": { "id": 93, "name": "Normal" },
+      "body_part": { "id": 40, "name": "Right Foot" },
+      "type": { "id": 87, "name": "Open Play" },
+      "outcome": { "id": 97, "name": "Goal" },
+      "first_time": true,
+      "freeze_frame": [
+        { "player": { "id": 2002, "name": "Eli Beta" }, "location": [110.0, 41.0], "teammate": false }
+      ]
+    }
+  },
+  {
+    "id": "90010000-0000-4000-8000-000000000007", "index": 7, "period": 1,
+    "timestamp": "00:10:00.000", "minute": 10, "second": 0,
+    "type": { "id": 16, "name": "Shot" },
+    "possession": 4, "possession_team": { "id": 102, "name": "Beta FC" },
+    "team": { "id": 102, "name": "Beta FC" },
+    "player": { "id": 2001, "name": "Dan Beta" },
+    "location": [110.0, 38.0],
+    "shot": {
+      "end_location": [118.0, 38.0],
+      "technique": { "id": 93, "name": "Normal" },
+      "body_part": { "id": 38, "name": "Left Foot" },
+      "type": { "id": 87, "name": "Open Play" },
+      "outcome": { "id": 100, "name": "Saved" },
+      "one_on_one": true
+    }
+  },
+  {
+    "id": "90010000-0000-4000-8000-000000000008", "index": 8, "period": 1,
+    "timestamp": "00:10:30.000", "minute": 10, "second": 30,
+    "type": { "id": 30, "name": "Pass" },
+    "possession": 5, "possession_team": { "id": 102, "name": "Beta FC" },
+    "team": { "id": 102, "name": "Beta FC" },
+    "player": { "id": 2001, "name": "Dan Beta" },
+    "location": [40.0, 30.0],
+    "pass": {
+      "recipient": { "id": 2002, "name": "Eli Beta" },
+      "length": 8.0,
+      "angle": 0.0,
+      "height": { "id": 1, "name": "Ground Pass" },
+      "end_location": [48.0, 30.0],
+      "body_part": { "id": 40, "name": "Right Foot" }
+    }
+  },
+  {
+    "id": "90010000-0000-4000-8000-000000000009", "index": 9, "period": 2,
+    "timestamp": "00:05:00.000", "minute": 50, "second": 0,
+    "type": { "id": 16, "name": "Shot" },
+    "possession": 6, "possession_team": { "id": 101, "name": "Alpha FC" },
+    "team": { "id": 101, "name": "Alpha FC" },
+    "player": { "id": 1002, "name": "Ben Alpha" },
+    "location": [95.0, 30.0],
+    "shot": {
+      "statsbomb_xg": 0.10,
+      "end_location": [120.0, 25.0, 3.5],
+      "technique": { "id": 93, "name": "Normal" },
+      "body_part": { "id": 40, "name": "Right Foot" },
+      "type": { "id": 62, "name": "Free Kick" },
+      "outcome": { "id": 98, "name": "Off T" }
+    }
+  },
+  {
+    "id": "90010000-0000-4000-8000-000000000010", "index": 10, "period": 2,
+    "timestamp": "00:06:00.000", "minute": 51, "second": 0,
+    "type": { "id": 43, "name": "Carry" },
+    "possession": 6, "possession_team": { "id": 101, "name": "Alpha FC" },
+    "team": { "id": 101, "name": "Alpha FC" },
+    "player": { "id": 1001, "name": "Ana Alpha" },
+    "location": [55.0, 40.0],
+    "carry": { "end_location": [60.0, 40.0] }
+  }
+]

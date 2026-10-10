@@ -1,0 +1,39 @@
+[
+  {
+    "team_id": 101,
+    "team_name": "Alpha FC",
+    "lineup": [
+      {
+        "player_id": 1001, "player_name": "Ana Alpha", "jersey_number": 9,
+        "country": { "id": 1, "name": "Alphaland" }, "cards": [],
+        "positions": [{ "position_id": 23, "position": "Center Forward", "start_reason": "Starting XI" }]
+      },
+      {
+        "player_id": 1002, "player_name": "Ben Alpha", "jersey_number": 8,
+        "country": { "id": 1, "name": "Alphaland" }, "cards": [],
+        "positions": [{ "position_id": 13, "position": "Right Center Midfield", "start_reason": "Starting XI" }]
+      }
+    ]
+  },
+  {
+    "team_id": 102,
+    "team_name": "Beta FC",
+    "lineup": [
+      {
+        "player_id": 2001, "player_name": "Dan Beta", "jersey_number": 10,
+        "country": { "id": 2, "name": "Betaland" }, "cards": [],
+        "positions": [{ "position_id": 23, "position": "Center Forward", "start_reason": "Starting XI" }]
+      },
+      {
+        "player_id": 2002, "player_name": "Eli Beta", "jersey_number": 7,
+        "country": { "id": 2, "name": "Betaland" }, "cards": [],
+        "positions": [{ "position_id": 17, "position": "Right Wing", "start_reason": "Starting XI" }]
+      },
+      {
+        "player_id": 2003, "player_name": "Gus Beta", "jersey_number": 1,
+        "country": { "id": 2, "name": "Betaland" }, "cards": [],
+        "positions": [{ "position_id": 1, "position": "Goalkeeper", "start_reason": "Starting XI" }]
+      }
+    ]
+  }
+]

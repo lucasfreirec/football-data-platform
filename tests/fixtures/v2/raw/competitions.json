@@ -1,0 +1,18 @@
+[
+  {
+    "competition_id": 16,
+    "season_id": 1,
+    "country_name": "Europe",
+    "competition_name": "Champions League",
+    "competition_gender": "male",
+    "season_name": "2017/2018"
+  },
+  {
+    "competition_id": 16,
+    "season_id": 2,
+    "country_name": "Europe",
+    "competition_name": "Champions League",
+    "competition_gender": "male",
+    "season_name": "2016/2017"
+  }
+]

@@ -1,0 +1,190 @@
+[
+  {
+    "id": "90020000-0000-4000-8000-000000000001", "index": 1, "period": 1,
+    "timestamp": "00:00:00.000", "minute": 0, "second": 0,
+    "type": { "id": 35, "name": "Starting XI" },
+    "possession": 1, "possession_team": { "id": 102, "name": "Beta FC" },
+    "team": { "id": 102, "name": "Beta FC" }
+  },
+  {
+    "id": "90020000-0000-4000-8000-000000000002", "index": 2, "period": 1,
+    "timestamp": "00:00:00.000", "minute": 0, "second": 0,
+    "type": { "id": 35, "name": "Starting XI" },
+    "possession": 1, "possession_team": { "id": 102, "name": "Beta FC" },
+    "team": { "id": 101, "name": "Alpha FC" }
+  },
+  {
+    "id": "90020000-0000-4000-8000-000000000003", "index": 3, "period": 1,
+    "timestamp": "00:00:10.000", "minute": 0, "second": 10,
+    "type": { "id": 30, "name": "Pass" },
+    "possession": 2, "possession_team": { "id": 102, "name": "Beta FC" },
+    "team": { "id": 102, "name": "Beta FC" },
+    "player": { "id": 2002, "name": "Eli Beta" },
+    "location": [30.0, 20.0],
+    "pass": {
+      "length": 20.0,
+      "angle": 1.0,
+      "height": { "id": 3, "name": "High Pass" },
+      "end_location": [45.0, 33.0],
+      "body_part": { "id": 40, "name": "Right Foot" },
+      "outcome": { "id": 75, "name": "Out" }
+    }
+  },
+  {
+    "id": "90020000-0000-4000-8000-000000000004", "index": 4, "period": 1,
+    "timestamp": "00:00:30.000", "minute": 0, "second": 30,
+    "type": { "id": 30, "name": "Pass" },
+    "possession": 3, "possession_team": { "id": 102, "name": "Beta FC" },
+    "team": { "id": 102, "name": "Beta FC" },
+    "player": { "id": 2001, "name": "Dan Beta" },
+    "location": [45.0, 33.0],
+    "pass": {
+      "recipient": { "id": 2002, "name": "Eli Beta" },
+      "length": 15.0,
+      "angle": 0.2,
+      "height": { "id": 1, "name": "Ground Pass" },
+      "end_location": [60.0, 35.0],
+      "body_part": { "id": 40, "name": "Right Foot" }
+    }
+  },
+  {
+    "id": "90020000-0000-4000-8000-000000000005", "index": 5, "period": 1,
+    "timestamp": "00:00:40.000", "minute": 0, "second": 40,
+    "type": { "id": 30, "name": "Pass" },
+    "possession": 3, "possession_team": { "id": 102, "name": "Beta FC" },
+    "team": { "id": 102, "name": "Beta FC" },
+    "player": { "id": 2001, "name": "Dan Beta" },
+    "location": [60.0, 35.0],
+    "pass": {
+      "recipient": { "id": 2002, "name": "Eli Beta" },
+      "length": 30.0,
+      "angle": 0.1,
+      "height": { "id": 2, "name": "Low Pass" },
+      "end_location": [90.0, 38.0],
+      "body_part": { "id": 40, "name": "Right Foot" },
+      "assisted_shot_id": "90020000-0000-4000-8000-000000000006",
+      "shot_assist": true
+    }
+  },
+  {
+    "id": "90020000-0000-4000-8000-000000000006", "index": 6, "period": 1,
+    "timestamp": "00:00:45.000", "minute": 0, "second": 45,
+    "type": { "id": 16, "name": "Shot" },
+    "possession": 3, "possession_team": { "id": 102, "name": "Beta FC" },
+    "team": { "id": 102, "name": "Beta FC" },
+    "player": { "id": 2001, "name": "Dan Beta" },
+    "location": [100.0, 40.0],
+    "shot": {
+      "statsbomb_xg": 0.5,
+      "end_location": [120.0, 45.0],
+      "key_pass_id": "90020000-0000-4000-8000-000000000005",
+      "technique": { "id": 93, "name": "Normal" },
+      "body_part": { "id": 40, "name": "Right Foot" },
+      "type": { "id": 87, "name": "Open Play" },
+      "outcome": { "id": 97, "name": "Goal" }
+    }
+  },
+  {
+    "id": "90020000-0000-4000-8000-000000000007", "index": 7, "period": 2,
+    "timestamp": "00:10:00.000", "minute": 55, "second": 0,
+    "type": { "id": 16, "name": "Shot" },
+    "possession": 4, "possession_team": { "id": 102, "name": "Beta FC" },
+    "team": { "id": 102, "name": "Beta FC" },
+    "player": { "id": 2002, "name": "Eli Beta" },
+    "location": [105.0, 42.0],
+    "shot": {
+      "statsbomb_xg": 0.5,
+      "end_location": [119.0, 41.0],
+      "technique": { "id": 93, "name": "Normal" },
+      "body_part": { "id": 37, "name": "Head" },
+      "type": { "id": 87, "name": "Open Play" },
+      "outcome": { "id": 96, "name": "Blocked" }
+    }
+  },
+  {
+    "id": "90020000-0000-4000-8000-000000000008", "index": 8, "period": 2,
+    "timestamp": "00:20:00.000", "minute": 65, "second": 0,
+    "type": { "id": 16, "name": "Shot" },
+    "possession": 5, "possession_team": { "id": 101, "name": "Alpha FC" },
+    "team": { "id": 101, "name": "Alpha FC" },
+    "player": { "id": 1003, "name": "Cal Alpha" },
+    "location": [98.0, 30.0],
+    "shot": {
+      "statsbomb_xg": 0.05,
+      "end_location": [120.0, 36.0, 0.5],
+      "technique": { "id": 93, "name": "Normal" },
+      "body_part": { "id": 38, "name": "Left Foot" },
+      "type": { "id": 87, "name": "Open Play" },
+      "outcome": { "id": 100, "name": "Saved" }
+    }
+  },
+  {
+    "id": "90020000-0000-4000-8000-000000000009", "index": 9, "period": 2,
+    "timestamp": "00:21:00.000", "minute": 66, "second": 0,
+    "type": { "id": 30, "name": "Pass" },
+    "possession": 6, "possession_team": { "id": 101, "name": "Alpha FC" },
+    "team": { "id": 101, "name": "Alpha FC" },
+    "player": { "id": 1003, "name": "Cal Alpha" },
+    "location": [70.0, 20.0],
+    "pass": {
+      "length": 25.0,
+      "angle": 0.9,
+      "height": { "id": 3, "name": "High Pass" },
+      "end_location": [90.0, 35.0],
+      "body_part": { "id": 40, "name": "Right Foot" },
+      "outcome": { "id": 76, "name": "Pass Offside" }
+    }
+  },
+  {
+    "id": "90020000-0000-4000-8000-000000000010", "index": 10, "period": 2,
+    "timestamp": "00:22:00.000", "minute": 67, "second": 0,
+    "type": { "id": 30, "name": "Pass" },
+    "possession": 7, "possession_team": { "id": 102, "name": "Beta FC" },
+    "team": { "id": 102, "name": "Beta FC" },
+    "player": { "id": 2002, "name": "Eli Beta" },
+    "location": [30.0, 20.0],
+    "pass": { "length": 5.0, "angle": 0.0, "end_location": [60.0] }
+  },
+  {
+    "id": "90020000-0000-4000-8000-000000000011", "index": 11, "period": 2,
+    "timestamp": "00:23:00.000", "minute": 68, "second": 0,
+    "type": { "id": 16, "name": "Shot" },
+    "possession": 7, "possession_team": { "id": 102, "name": "Beta FC" },
+    "team": { "id": 102, "name": "Beta FC" },
+    "player": { "id": 2001, "name": "Dan Beta" },
+    "location": [100.0, 40.0],
+    "shot": {
+      "statsbomb_xg": "high",
+      "end_location": [120.0, 40.0],
+      "outcome": { "id": 97, "name": "Goal" }
+    }
+  },
+  {
+    "id": "90020000-0000-4000-8000-000000000012", "index": 12, "period": 2,
+    "timestamp": "00:24:00.000", "minute": 69, "second": 0,
+    "type": { "id": 30, "name": "Pass" },
+    "possession": 8, "possession_team": { "id": 102, "name": "Beta FC" },
+    "team": { "id": 102, "name": "Beta FC" },
+    "player": { "id": 2001, "name": "Dan Beta" },
+    "location": [40.0, 30.0],
+    "pass": {
+      "recipient": { "name": "No Identifier" },
+      "length": 9.0,
+      "end_location": [49.0, 30.0]
+    }
+  },
+  {
+    "id": "90020000-0000-4000-8000-000000000013", "index": 13, "period": 2,
+    "timestamp": "00:25:00.000", "minute": 70, "second": 0,
+    "type": { "id": 16, "name": "Shot" },
+    "possession": 9, "possession_team": { "id": 102, "name": "Beta FC" },
+    "team": { "id": 102, "name": "Beta FC" },
+    "player": { "id": 2002, "name": "Eli Beta" },
+    "location": [100.0, 40.0],
+    "shot": {
+      "statsbomb_xg": 0.3,
+      "end_location": [120.0, 40.0, 1.0, 5.0],
+      "outcome": { "id": 96, "name": "Blocked" }
+    }
+  }
+]
