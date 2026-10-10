@@ -13,6 +13,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from app.core.exceptions import ConfigurationError
 
 _SUPPORTED_DB_SCHEMES = ("postgresql+psycopg://", "postgresql://")
+_SUPPORTED_BROKER_SCHEMES = ("redis://", "rediss://")
 
 
 class Settings(BaseSettings):
@@ -38,6 +39,40 @@ class Settings(BaseSettings):
     statsbomb_base_url: str | None = None
     api_host: str = "0.0.0.0"
     api_port: int = Field(default=8000, ge=1, le=65535)
+
+    broker_url: str = "redis://localhost:6379/0"
+    job_queue_name: str = Field(default="football-jobs", min_length=1, max_length=64)
+    worker_concurrency: int = Field(default=2, ge=1, le=64)
+    worker_metrics_port: int = Field(default=9100, ge=1, le=65535)
+    job_max_attempts: int = Field(default=3, ge=1, le=10)
+    # Seconds to wait before attempt 2, 3, ...; the last value repeats if attempts outrun the list.
+    job_retry_delays_seconds: str = "5,30,120"
+    stale_job_minutes: int = Field(default=15, ge=1)
+
+    @property
+    def retry_delays(self) -> tuple[int, ...]:
+        return tuple(int(part) for part in self.job_retry_delays_seconds.split(","))
+
+    @field_validator("broker_url")
+    @classmethod
+    def _validate_broker_url(cls, value: str) -> str:
+        if not value.startswith(_SUPPORTED_BROKER_SCHEMES):
+            raise ValueError(
+                f"BROKER_URL must be a Redis URL starting with one of "
+                f"{', '.join(_SUPPORTED_BROKER_SCHEMES)}"
+            )
+        return value
+
+    @field_validator("job_retry_delays_seconds")
+    @classmethod
+    def _validate_retry_delays(cls, value: str) -> str:
+        try:
+            delays = [int(part) for part in value.split(",")]
+        except ValueError as exc:
+            raise ValueError("JOB_RETRY_DELAYS_SECONDS must be comma-separated integers") from exc
+        if not delays or any(delay < 0 for delay in delays):
+            raise ValueError("JOB_RETRY_DELAYS_SECONDS must hold non-negative integers")
+        return value
 
     @field_validator("database_url")
     @classmethod

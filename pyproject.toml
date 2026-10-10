@@ -14,6 +14,8 @@ dependencies = [
     "pydantic-settings>=2.6",
     "httpx>=0.27",
     "typer>=0.15",
+    "celery[redis]>=5.4",
+    "prometheus-client>=0.21",
 ]
 
 [project.scripts]
@@ -25,6 +27,8 @@ dev = [
     "pytest-cov>=6.0",
     "ruff>=0.8",
     "mypy>=1.13",
+    "pyyaml>=6.0",
+    "types-pyyaml>=6.0.12.20260906",
 ]
 
 [build-system]
@@ -67,10 +71,14 @@ no_implicit_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
 
+[[tool.mypy.overrides]]
+module = ["celery.*", "kombu.*", "redis.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-ra --strict-markers"
 markers = [
-    "integration: tests that require a live PostgreSQL database",
+    "integration: tests that need PostgreSQL, and for the end-to-end path also Redis",
 ]

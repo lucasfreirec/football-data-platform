@@ -59,3 +59,41 @@ def test_invalid_app_env_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with pytest.raises(ConfigurationError):
         load_settings(_env_file=None)
+
+
+def test_async_processing_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in (
+        "BROKER_URL",
+        "WORKER_CONCURRENCY",
+        "JOB_MAX_ATTEMPTS",
+        "JOB_RETRY_DELAYS_SECONDS",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
+    settings = Settings(_env_file=None)
+
+    assert settings.broker_url == "redis://localhost:6379/0"
+    assert settings.worker_concurrency == 2
+    assert settings.job_max_attempts == 3
+    assert settings.retry_delays == (5, 30, 120)
+    assert settings.stale_job_minutes == 15
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("BROKER_URL", "amqp://guest@localhost//"),
+        ("WORKER_CONCURRENCY", "0"),
+        ("JOB_MAX_ATTEMPTS", "0"),
+        ("JOB_RETRY_DELAYS_SECONDS", "5,soon"),
+        ("JOB_RETRY_DELAYS_SECONDS", "5,-1"),
+        ("STALE_JOB_MINUTES", "0"),
+    ],
+)
+def test_invalid_async_settings_are_rejected(
+    monkeypatch: pytest.MonkeyPatch, name: str, value: str
+) -> None:
+    monkeypatch.setenv(name, value)
+
+    with pytest.raises(ConfigurationError):
+        load_settings(_env_file=None)

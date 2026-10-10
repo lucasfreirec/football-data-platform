@@ -600,6 +600,23 @@ They cover what only PostgreSQL can prove:
 descending sort while SQLite sorts it first on an ascending one, so each database catches the
 mistake the other misses.
 
+## Asynchronous processing
+
+The platform also runs match-level work as background jobs: an API accepts a request, a durable
+record is written to PostgreSQL, and a worker executes it. The synchronous ingestion CLI above is
+unchanged and still the simplest way to import a whole season.
+
+### Why Celery with Redis
+
+- **A proven queue instead of a custom one.** Celery already provides acknowledgement, redelivery
+  after a worker dies (`acks_late` with `reject_on_worker_lost`), delayed retries, and a prefork
+  process pool. Writing those correctly is the hard part of a queue.
+- **Redis over RabbitMQ** because it is one small container locally and a one-line managed service
+  in the cloud. RabbitMQ's routing and per-message features are not needed for two job types.
+- **PostgreSQL stays the system of record.** The broker only carries a job id. Job state, attempts,
+  results and errors live in `processing_jobs`, so a flushed or unavailable broker never loses
+  track of work, and a lost message can be re-enqueued from the database.
+
 ## Development
 
 ```bash
