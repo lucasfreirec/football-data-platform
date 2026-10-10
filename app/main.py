@@ -11,6 +11,7 @@ from app.api.routes import (
     competitions,
     event_details,
     health,
+    jobs,
     matches,
     players,
     teams,
@@ -23,12 +24,12 @@ API_PREFIX = "/api/v1"
 logger = get_logger(__name__)
 
 DESCRIPTION = """
-Read-only access to StatsBomb Open Data imported for the UEFA Champions League
-2017/18 season.
+Read access to StatsBomb Open Data imported for the UEFA Champions League
+2017/18 season, plus `/jobs` endpoints to submit and track background processing.
 
 Resources are addressed by their stable StatsBomb identifiers. Collection
 endpoints are offset-paginated and return an `items` / `limit` / `offset` /
-`total` envelope.
+`total` envelope. Football data is read-only; only jobs can be created.
 """
 
 
@@ -50,6 +51,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         matches.router,
         event_details.router,
         analytics.router,
+        jobs.router,
     ):
         app.include_router(router, prefix=API_PREFIX)
 
