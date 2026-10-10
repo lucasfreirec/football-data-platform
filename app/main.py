@@ -5,7 +5,15 @@ from __future__ import annotations
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.api.routes import competitions, event_details, health, matches, players, teams
+from app.api.routes import (
+    analytics,
+    competitions,
+    event_details,
+    health,
+    matches,
+    players,
+    teams,
+)
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging, get_logger
 
@@ -40,6 +48,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         players.router,
         matches.router,
         event_details.router,
+        analytics.router,
     ):
         app.include_router(router, prefix=API_PREFIX)
 
