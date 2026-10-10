@@ -6,6 +6,7 @@ skip a single record instead of aborting the import.
 
 from __future__ import annotations
 
+import math
 from datetime import date, datetime, time
 from typing import Any
 
@@ -55,6 +56,18 @@ def optional_bool(value: Any, field: str) -> bool | None:
     return value
 
 
+def optional_finite_float(value: Any, field: str) -> float | None:
+    """Accept a real number; reject booleans, strings, NaN, and infinities."""
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValidationError(f"Expected a number for {field!r}, got {value!r}")
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValidationError(f"Expected a finite number for {field!r}, got {value!r}")
+    return number
+
+
 def parse_date(value: Any, field: str) -> date:
     if isinstance(value, date) and not isinstance(value, datetime):
         return value
@@ -96,14 +109,22 @@ def parse_optional_datetime(value: Any, field: str) -> datetime | None:
         raise ValidationError(f"Unparseable timestamp for {field!r}: {value!r}") from exc
 
 
-def parse_location(value: Any, field: str = "location") -> tuple[float | None, float | None]:
-    """Return ``(x, y)`` for a two-number array, ``(None, None)`` when absent."""
+def parse_location(
+    value: Any, field: str = "location", *, allow_height: bool = False
+) -> tuple[float | None, float | None]:
+    """Return ``(x, y)`` for a two-number array, ``(None, None)`` when absent.
+
+    With ``allow_height`` a third value is accepted and discarded: StatsBomb adds the
+    ball height to the end location of on-target shots, and no column stores it.
+    """
     if value is None:
         return None, None
-    if not isinstance(value, (list, tuple)) or len(value) != 2:
-        raise ValidationError(f"Expected a two-number array for {field!r}, got {value!r}")
+    allowed = (2, 3) if allow_height else (2,)
+    if not isinstance(value, (list, tuple)) or len(value) not in allowed:
+        expected = "a two- or three-number array" if allow_height else "a two-number array"
+        raise ValidationError(f"Expected {expected} for {field!r}, got {value!r}")
     coordinates: list[float] = []
-    for axis, item in zip(("x", "y"), value, strict=True):
+    for axis, item in zip(("x", "y", "z"), value, strict=False):
         if isinstance(item, bool) or not isinstance(item, (int, float)):
             raise ValidationError(f"Non-numeric {axis} coordinate for {field!r}: {value!r}")
         coordinates.append(float(item))

@@ -13,6 +13,7 @@ from typing import Any
 from app.core.exceptions import ValidationError
 from app.ingestion.validators import (
     optional_bool,
+    optional_finite_float,
     optional_int,
     optional_str,
     parse_date,
@@ -51,6 +52,9 @@ _EVENT_DETAIL_KEYS = (
 
 # Bulky nested payloads that would make raw_data a second copy of the source.
 _EVENT_DETAIL_EXCLUDED_KEYS = frozenset({"freeze_frame"})
+
+PASS_TYPE = "Pass"
+SHOT_TYPE = "Shot"
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,6 +113,44 @@ class NormalizedMatch:
 
 
 @dataclass(frozen=True, slots=True)
+class NormalizedPassDetail:
+    """Pass attributes; every field is NULL when the source omits it."""
+
+    recipient: NormalizedPlayer | None = None
+    length: float | None = None
+    angle: float | None = None
+    height_name: str | None = None
+    end_location_x: float | None = None
+    end_location_y: float | None = None
+    outcome_name: str | None = None
+    body_part_name: str | None = None
+    technique_name: str | None = None
+    type_name: str | None = None
+    is_cross: bool | None = None
+    is_cut_back: bool | None = None
+    is_switch: bool | None = None
+    is_assisted_shot: bool | None = None
+    is_goal_assist: bool | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class NormalizedShotDetail:
+    """Shot attributes; ``key_pass_statsbomb_id`` is resolved to an event at persistence."""
+
+    key_pass_statsbomb_id: str | None = None
+    end_location_x: float | None = None
+    end_location_y: float | None = None
+    statsbomb_xg: float | None = None
+    outcome_name: str | None = None
+    body_part_name: str | None = None
+    technique_name: str | None = None
+    type_name: str | None = None
+    first_time: bool | None = None
+    one_on_one: bool | None = None
+    open_goal: bool | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class NormalizedEvent:
     statsbomb_id: str
     index_in_match: int
@@ -125,6 +167,8 @@ class NormalizedEvent:
     location_y: float | None = None
     outcome_name: str | None = None
     raw_data: dict[str, Any] | None = None
+    pass_detail: NormalizedPassDetail | None = None
+    shot_detail: NormalizedShotDetail | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -206,11 +250,12 @@ def normalize_event(raw: Any) -> NormalizedEvent:
     type_raw = require_mapping(record.get("type"), "event.type")
     location_x, location_y = parse_location(record.get("location"))
     detail_key, detail = _event_detail(record)
+    type_name = require_str(type_raw.get("name"), "event.type.name")
 
     return NormalizedEvent(
         statsbomb_id=require_str(record.get("id"), "event.id"),
         index_in_match=require_int(record.get("index"), "event.index"),
-        type_name=require_str(type_raw.get("name"), "event.type.name"),
+        type_name=type_name,
         period=optional_int(record.get("period"), "event.period"),
         timestamp=parse_optional_time(record.get("timestamp"), "event.timestamp"),
         minute=optional_int(record.get("minute"), "event.minute"),
@@ -223,8 +268,71 @@ def normalize_event(raw: Any) -> NormalizedEvent:
         player=_normalize_event_player(record),
         location_x=location_x,
         location_y=location_y,
-        outcome_name=_detail_outcome(detail),
+        outcome_name=_detail_outcome(detail_key, detail),
         raw_data=_event_raw_data(record, detail_key, detail),
+        pass_detail=normalize_pass_detail(record) if type_name == PASS_TYPE else None,
+        shot_detail=normalize_shot_detail(record) if type_name == SHOT_TYPE else None,
+    )
+
+
+def normalize_pass_detail(record: dict[str, Any]) -> NormalizedPassDetail:
+    """Extract the documented StatsBomb pass fields from a ``Pass`` event.
+
+    A Pass event without a ``pass`` object yields an all-NULL detail rather than an
+    error; a ``pass`` object that is present but malformed rejects the event.
+    """
+    raw = record.get("pass")
+    if raw is None:
+        return NormalizedPassDetail()
+    detail = require_mapping(raw, "pass")
+
+    end_x, end_y = parse_location(detail.get("end_location"), "pass.end_location")
+    shot_assist = optional_bool(detail.get("shot_assist"), "pass.shot_assist")
+    assisted_shot_id = optional_str(detail.get("assisted_shot_id"), "pass.assisted_shot_id")
+
+    return NormalizedPassDetail(
+        recipient=_optional_player_ref(detail.get("recipient"), "pass.recipient"),
+        length=optional_finite_float(detail.get("length"), "pass.length"),
+        angle=optional_finite_float(detail.get("angle"), "pass.angle"),
+        height_name=_optional_name(detail, "height", "pass.height"),
+        end_location_x=end_x,
+        end_location_y=end_y,
+        outcome_name=_optional_name(detail, "outcome", "pass.outcome"),
+        body_part_name=_optional_name(detail, "body_part", "pass.body_part"),
+        technique_name=_optional_name(detail, "technique", "pass.technique"),
+        type_name=_optional_name(detail, "type", "pass.type"),
+        is_cross=optional_bool(detail.get("cross"), "pass.cross"),
+        is_cut_back=optional_bool(detail.get("cut_back"), "pass.cut_back"),
+        is_switch=optional_bool(detail.get("switch"), "pass.switch"),
+        # StatsBomb flags the passes that led to a shot with shot_assist and/or assisted_shot_id.
+        is_assisted_shot=True if shot_assist or assisted_shot_id else shot_assist,
+        is_goal_assist=optional_bool(detail.get("goal_assist"), "pass.goal_assist"),
+    )
+
+
+def normalize_shot_detail(record: dict[str, Any]) -> NormalizedShotDetail:
+    """Extract the documented StatsBomb shot fields from a ``Shot`` event."""
+    raw = record.get("shot")
+    if raw is None:
+        return NormalizedShotDetail()
+    detail = require_mapping(raw, "shot")
+
+    end_x, end_y = parse_location(
+        detail.get("end_location"), "shot.end_location", allow_height=True
+    )
+
+    return NormalizedShotDetail(
+        key_pass_statsbomb_id=optional_str(detail.get("key_pass_id"), "shot.key_pass_id"),
+        end_location_x=end_x,
+        end_location_y=end_y,
+        statsbomb_xg=optional_finite_float(detail.get("statsbomb_xg"), "shot.statsbomb_xg"),
+        outcome_name=_optional_name(detail, "outcome", "shot.outcome"),
+        body_part_name=_optional_name(detail, "body_part", "shot.body_part"),
+        technique_name=_optional_name(detail, "technique", "shot.technique"),
+        type_name=_optional_name(detail, "type", "shot.type"),
+        first_time=optional_bool(detail.get("first_time"), "shot.first_time"),
+        one_on_one=optional_bool(detail.get("one_on_one"), "shot.one_on_one"),
+        open_goal=optional_bool(detail.get("open_goal"), "shot.open_goal"),
     )
 
 
@@ -307,6 +415,24 @@ def _normalize_reference_team(raw: Any, field: str) -> NormalizedTeam | None:
     )
 
 
+def _optional_name(container: dict[str, Any], key: str, field: str) -> str | None:
+    """Read ``container[key]['name']`` for StatsBomb ``{id, name}`` reference objects."""
+    raw = container.get(key)
+    if raw is None:
+        return None
+    return optional_str(require_mapping(raw, field).get("name"), f"{field}.name")
+
+
+def _optional_player_ref(raw: Any, field: str) -> NormalizedPlayer | None:
+    if raw is None:
+        return None
+    player = require_mapping(raw, field)
+    return NormalizedPlayer(
+        statsbomb_id=require_int(player.get("id"), f"{field}.id"),
+        name=require_str(player.get("name"), f"{field}.name"),
+    )
+
+
 def _normalize_event_player(record: dict[str, Any]) -> NormalizedPlayer | None:
     raw = record.get("player")
     if raw is None:
@@ -338,13 +464,13 @@ def _event_detail(record: dict[str, Any]) -> tuple[str | None, dict[str, Any] | 
     return None, None
 
 
-def _detail_outcome(detail: dict[str, Any] | None) -> str | None:
+def _detail_outcome(detail_key: str | None, detail: dict[str, Any] | None) -> str | None:
     if not detail:
         return None
     outcome = detail.get("outcome")
     if not isinstance(outcome, dict):
         return None
-    return optional_str(outcome.get("name"), "outcome.name")
+    return optional_str(outcome.get("name"), f"{detail_key}.outcome.name")
 
 
 def _event_raw_data(
