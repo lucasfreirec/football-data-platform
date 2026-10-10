@@ -7,9 +7,11 @@ autogenerate sees the full schema.
 from app.db.base import Base
 from app.db.models.competition import Competition, Season
 from app.db.models.event import Event
+from app.db.models.event_detail import PassDetail, ShotDetail
 from app.db.models.lineup import Lineup
 from app.db.models.match import Match
 from app.db.models.player import Player
+from app.db.models.source_manifest import SourceManifest
 from app.db.models.team import Team
 
 __all__ = [
@@ -18,7 +20,10 @@ __all__ = [
     "Event",
     "Lineup",
     "Match",
+    "PassDetail",
     "Player",
     "Season",
+    "ShotDetail",
+    "SourceManifest",
     "Team",
 ]

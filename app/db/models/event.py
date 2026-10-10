@@ -1,7 +1,8 @@
 """Event model.
 
-V1 keeps a single flat events table; StatsBomb event subtypes are not modelled
-separately. Unmodelled attributes of interest live in ``raw_data``.
+The flat events table is the canonical timeline for every StatsBomb event type.
+Pass and shot events additionally own one row in ``pass_details`` or
+``shot_details``; unmodelled attributes of interest live in ``raw_data``.
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ from app.db.models.player import Player
 from app.db.models.team import Team
 
 if TYPE_CHECKING:
+    from app.db.models.event_detail import PassDetail, ShotDetail
     from app.db.models.match import Match
 
 
@@ -48,3 +50,13 @@ class Event(TimestampMixin, Base):
     team: Mapped[Team | None] = relationship(foreign_keys=[team_id])
     possession_team: Mapped[Team | None] = relationship(foreign_keys=[possession_team_id])
     player: Mapped[Player | None] = relationship(foreign_keys=[player_id])
+    pass_detail: Mapped[PassDetail | None] = relationship(
+        back_populates="event", uselist=False, cascade="all, delete-orphan", passive_deletes=True
+    )
+    shot_detail: Mapped[ShotDetail | None] = relationship(
+        back_populates="event",
+        foreign_keys="ShotDetail.event_id",
+        uselist=False,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
