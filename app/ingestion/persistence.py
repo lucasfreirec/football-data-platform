@@ -8,10 +8,13 @@ downgrade a rich record (a match's ``home_team``).
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
+from dataclasses import fields, replace
 from typing import Any
 
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as postgresql_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
@@ -42,7 +45,12 @@ logger = get_logger(__name__)
 
 
 class IngestionRepository:
-    """Upserts reference data and matches within a single session."""
+    """Upserts reference data and matches within a single session.
+
+    Rows keyed by an external id are created with ``INSERT ... ON CONFLICT DO NOTHING``
+    and then read back, so two workers importing different matches that share a team
+    or player cannot fail each other with a unique violation.
+    """
 
     def __init__(self, session: Session) -> None:
         self.session = session
@@ -51,68 +59,111 @@ class IngestionRepository:
         self._teams: dict[int, Team] = {}
         self._players: dict[int, Player] = {}
 
+    def _insert_if_absent(
+        self, model: type[Any], values: dict[str, Any], conflict_columns: list[str]
+    ) -> None:
+        dialect = self.session.get_bind().dialect.name
+        if dialect == "postgresql":
+            statement: Any = (
+                postgresql_insert(model)
+                .values(**values)
+                .on_conflict_do_nothing(index_elements=conflict_columns)
+            )
+        elif dialect == "sqlite":
+            statement = (
+                sqlite_insert(model)
+                .values(**values)
+                .on_conflict_do_nothing(index_elements=conflict_columns)
+            )
+        else:
+            self.session.add(model(**values))
+            self.session.flush()
+            return
+        self.session.execute(statement)
+
+    def seed_reference_data(
+        self,
+        competition: NormalizedCompetition,
+        season: NormalizedSeason,
+        teams: Iterable[NormalizedTeam],
+        players: Iterable[NormalizedPlayer],
+    ) -> None:
+        """Create the shared rows a match refers to, in a fixed global order.
+
+        Every worker takes row locks in the same order (competition, then teams and
+        players by ascending id), so concurrent imports cannot deadlock on them.
+        """
+        self.upsert_season(self.upsert_competition(competition), season)
+        for team in _merge_by_id(teams):
+            self.upsert_team(team)
+        for player in _merge_by_id(players):
+            self.upsert_player(player)
+        self.session.flush()
+
     def upsert_competition(self, record: NormalizedCompetition) -> Competition:
-        competition = self._competitions.get(record.statsbomb_id) or self.session.scalar(
-            select(Competition).where(Competition.statsbomb_id == record.statsbomb_id)
-        )
         values = {
             "name": record.name,
             "country_name": record.country_name,
             "gender": record.gender,
             "format": record.format,
         }
+        competition = self._competitions.get(record.statsbomb_id)
         if competition is None:
-            competition = Competition(statsbomb_id=record.statsbomb_id, **_present(values))
-            self.session.add(competition)
-            self.session.flush()
-        else:
-            _apply(competition, values)
+            self._insert_if_absent(
+                Competition,
+                {"statsbomb_id": record.statsbomb_id, **_present(values)},
+                ["statsbomb_id"],
+            )
+            competition = self.session.scalars(
+                select(Competition).where(Competition.statsbomb_id == record.statsbomb_id)
+            ).one()
+        _apply(competition, values)
         self._competitions[record.statsbomb_id] = competition
         return competition
 
     def upsert_season(self, competition: Competition, record: NormalizedSeason) -> Season:
         key = (competition.id, record.statsbomb_id)
-        season = self._seasons.get(key) or self.session.scalar(
-            select(Season).where(
-                Season.competition_id == competition.id,
-                Season.statsbomb_id == record.statsbomb_id,
-            )
-        )
+        season = self._seasons.get(key)
         if season is None:
-            season = Season(
-                competition_id=competition.id,
-                statsbomb_id=record.statsbomb_id,
-                name=record.name,
+            self._insert_if_absent(
+                Season,
+                {
+                    "competition_id": competition.id,
+                    "statsbomb_id": record.statsbomb_id,
+                    "name": record.name,
+                },
+                ["competition_id", "statsbomb_id"],
             )
-            self.session.add(season)
-            self.session.flush()
-        else:
-            _apply(season, {"name": record.name})
+            season = self.session.scalars(
+                select(Season).where(
+                    Season.competition_id == competition.id,
+                    Season.statsbomb_id == record.statsbomb_id,
+                )
+            ).one()
+        _apply(season, {"name": record.name})
         self._seasons[key] = season
         return season
 
-    def upsert_team(self, record: NormalizedTeam) -> Team:
-        team = self._teams.get(record.statsbomb_id) or self.session.scalar(
-            select(Team).where(Team.statsbomb_id == record.statsbomb_id)
-        )
+    def upsert_team(self, record: NormalizedTeam, *, update_existing: bool = True) -> Team:
         values = {
             "name": record.name,
             "gender": record.gender,
             "country_name": record.country_name,
         }
+        team = self._teams.get(record.statsbomb_id)
         if team is None:
-            team = Team(statsbomb_id=record.statsbomb_id, **_present(values))
-            self.session.add(team)
-            self.session.flush()
-        else:
+            self._insert_if_absent(
+                Team, {"statsbomb_id": record.statsbomb_id, **_present(values)}, ["statsbomb_id"]
+            )
+            team = self.session.scalars(
+                select(Team).where(Team.statsbomb_id == record.statsbomb_id)
+            ).one()
+        elif update_existing:
             _apply(team, values)
         self._teams[record.statsbomb_id] = team
         return team
 
-    def upsert_player(self, record: NormalizedPlayer) -> Player:
-        player = self._players.get(record.statsbomb_id) or self.session.scalar(
-            select(Player).where(Player.statsbomb_id == record.statsbomb_id)
-        )
+    def upsert_player(self, record: NormalizedPlayer, *, update_existing: bool = True) -> Player:
         values = {
             "name": record.name,
             "nickname": record.nickname,
@@ -120,11 +171,17 @@ class IngestionRepository:
             "birth_date": record.birth_date,
             "position_name": record.position_name,
         }
+        player = self._players.get(record.statsbomb_id)
         if player is None:
-            player = Player(statsbomb_id=record.statsbomb_id, **_present(values))
-            self.session.add(player)
-            self.session.flush()
-        else:
+            self._insert_if_absent(
+                Player,
+                {"statsbomb_id": record.statsbomb_id, **_present(values)},
+                ["statsbomb_id"],
+            )
+            player = self.session.scalars(
+                select(Player).where(Player.statsbomb_id == record.statsbomb_id)
+            ).one()
+        elif update_existing:
             _apply(player, values)
         self._players[record.statsbomb_id] = player
         return player
@@ -335,14 +392,35 @@ class IngestionRepository:
         return len(records)
 
     def _team_id(self, record: NormalizedTeam | None) -> int | None:
-        return None if record is None else self.upsert_team(record).id
+        # An event only references a team; it must not rewrite a row other imports share.
+        return None if record is None else self.upsert_team(record, update_existing=False).id
 
     def _player_id(self, record: NormalizedPlayer | None) -> int | None:
-        return None if record is None else self.upsert_player(record).id
+        # Likewise, an event's position is where the player was then, not their details.
+        return None if record is None else self.upsert_player(record, update_existing=False).id
 
 
 def _present(values: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in values.items() if value is not None}
+
+
+def _merge_by_id[Reference: (NormalizedTeam, NormalizedPlayer)](
+    records: Iterable[Reference],
+) -> list[Reference]:
+    """One record per id, filling fields a duplicate omits, ordered by id."""
+    merged: dict[int, Reference] = {}
+    for record in records:
+        known = merged.get(record.statsbomb_id)
+        if known is None:
+            merged[record.statsbomb_id] = record
+            continue
+        fill = {
+            item.name: getattr(record, item.name)
+            for item in fields(record)
+            if getattr(known, item.name) is None and getattr(record, item.name) is not None
+        }
+        merged[record.statsbomb_id] = replace(known, **fill)
+    return [merged[key] for key in sorted(merged)]
 
 
 def _apply(instance: object, values: dict[str, Any]) -> bool:

@@ -19,6 +19,10 @@ class SourceError(FootballDataError):
     """Raised when StatsBomb source data cannot be located, read, or parsed."""
 
 
+class SourceReadError(SourceError):
+    """The source exists but could not be read (an I/O problem), so retrying may help."""
+
+
 class ValidationError(FootballDataError):
     """Raised when a source record fails normalization or validation."""
 

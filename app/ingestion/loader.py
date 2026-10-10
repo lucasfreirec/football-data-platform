@@ -14,7 +14,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from app.core.exceptions import SourceError
+from app.core.exceptions import SourceError, SourceReadError
 
 COMPETITIONS_FILE = "competitions.json"
 MATCHES_DIR = "matches"
@@ -75,7 +75,7 @@ class SourceLoader:
         try:
             text = path.read_text(encoding="utf-8").strip()
         except OSError as exc:
-            raise SourceError(f"Could not read {path}: {exc}") from exc
+            raise SourceReadError(f"Could not read {path}: {exc}") from exc
         return text[:SOURCE_VERSION_MAX_LENGTH] or None
 
     @staticmethod
@@ -87,7 +87,7 @@ class SourceLoader:
         except json.JSONDecodeError as exc:
             raise SourceError(f"Invalid JSON in {path}: {exc}") from exc
         except OSError as exc:
-            raise SourceError(f"Could not read {path}: {exc}") from exc
+            raise SourceReadError(f"Could not read {path}: {exc}") from exc
 
         if not isinstance(payload, list):
             raise SourceError(f"Expected a JSON array in {path}, got {type(payload).__name__}")

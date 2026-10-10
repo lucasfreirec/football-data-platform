@@ -256,3 +256,24 @@ def list_team_stats(
         *_ordering(metrics, Team.statsbomb_id, sort_by, order)
     )
     return paginate_rows(session, statement, limit=limit, offset=offset)
+
+
+def get_match_team_stats(session: Session, match: Match) -> list[Row[Any]]:
+    """Per-team pass and shot totals for one match, using the season definitions.
+
+    Both sides are always present, with zeros when a team has no pass or shot events.
+    """
+    scope = select(Match.id).where(Match.id == match.id)
+    events = _event_stats(scope, Event.team_id)
+    statement = (
+        select(
+            Team.statsbomb_id.label("team_id"),
+            Team.name.label("team_name"),
+            *_labelled(_metrics(events)),
+        )
+        .select_from(Team)
+        .outerjoin(events, events.c.key == Team.id)
+        .where(Team.id.in_((match.home_team_id, match.away_team_id)))
+        .order_by(Team.statsbomb_id)
+    )
+    return list(session.execute(statement).all())

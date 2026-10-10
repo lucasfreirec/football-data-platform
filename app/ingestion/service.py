@@ -246,6 +246,64 @@ class IngestionService:
             raise PersistenceError(f"Database write failed: {reason}") from exc
         return summary
 
+    def ingest_match(self, statsbomb_match_id: int) -> IngestionSummary:
+        """Import one listed match; the caller owns the transaction.
+
+        Everything is parsed and validated before anything is written, and the shared
+        teams and players are created first in ascending id order, so several workers
+        importing different matches take their locks in the same order and cannot
+        deadlock. No source manifest is written: those describe whole-season runs.
+
+        Raises :class:`SourceError` when the source is missing or malformed, and
+        :class:`ValidationError` when the match's own record is invalid.
+        """
+        self.loader.ensure_available()
+        target = self._find_target_season()
+        competition_id = target.competition.statsbomb_id
+        season_id = target.season.statsbomb_id
+        matches_file = self.loader.matches_path(competition_id, season_id)
+
+        raw_match = next(
+            (
+                raw
+                for raw in self.loader.load_matches(competition_id, season_id)
+                if _maybe_int(raw, "match_id") == statsbomb_match_id
+            ),
+            None,
+        )
+        if raw_match is None:
+            raise SourceError(f"Match {statsbomb_match_id} is not listed in {matches_file}")
+        match_record = normalize_match(raw_match)
+
+        summary = self.summary = IngestionSummary(matches_listed=1)
+        lineups = self._parse_lineups(statsbomb_match_id, summary)
+        events = self._parse_events(statsbomb_match_id, summary)
+
+        teams = [match_record.home_team, match_record.away_team]
+        players = []
+        for entry in lineups or []:
+            teams.append(entry.team)
+            players.append(entry.player)
+        for event in events or []:
+            teams.extend(team for team in (event.team, event.possession_team) if team)
+            if event.player:
+                players.append(event.player)
+            if event.pass_detail and event.pass_detail.recipient:
+                players.append(event.pass_detail.recipient)
+        self.repository.seed_reference_data(target.competition, target.season, teams, players)
+
+        match = self.repository.upsert_match(match_record)
+        summary.matches_processed = 1
+        if lineups is not None:
+            summary.lineups_imported += self.repository.upsert_lineups(match, lineups)
+        if events is not None:
+            summary.events_imported += self.repository.upsert_events(match, events)
+            summary.passes_imported += sum(1 for e in events if e.pass_detail is not None)
+            summary.shots_imported += sum(1 for e in events if e.shot_detail is not None)
+        self.session.flush()
+        summary.settle_status()
+        return summary
+
     def _import(self, target: NormalizedCompetitionSeason, summary: IngestionSummary) -> None:
         competition_id = target.competition.statsbomb_id
         season_id = target.season.statsbomb_id
@@ -352,11 +410,18 @@ class IngestionService:
             return None
 
     def _ingest_lineups(self, match: Match, summary: IngestionSummary) -> None:
-        match_id = match.statsbomb_id
+        entries = self._parse_lineups(match.statsbomb_id, summary)
+        if entries is not None:
+            summary.lineups_imported += self.repository.upsert_lineups(match, entries)
+
+    def _parse_lineups(
+        self, match_id: int, summary: IngestionSummary
+    ) -> list[NormalizedLineupEntry] | None:
+        """Validated lineup rows, or ``None`` when the file is unavailable."""
         source_file = str(self.loader.lineups_path(match_id))
         if not self.loader.has_lineups(match_id):
             summary.report_missing(MissingFile(source_file, "lineups", match_id))
-            return
+            return None
         summary.lineup_files_found += 1
 
         entries: list[NormalizedLineupEntry] = []
@@ -406,14 +471,24 @@ class IngestionService:
                 seen.add(key)
                 entries.append(entry)
 
-        summary.lineups_imported += self.repository.upsert_lineups(match, entries)
+        return entries
 
     def _ingest_events(self, match: Match, summary: IngestionSummary) -> None:
-        match_id = match.statsbomb_id
+        records = self._parse_events(match.statsbomb_id, summary)
+        if records is None:
+            return
+        summary.events_imported += self.repository.upsert_events(match, records)
+        summary.passes_imported += sum(1 for record in records if record.pass_detail is not None)
+        summary.shots_imported += sum(1 for record in records if record.shot_detail is not None)
+
+    def _parse_events(
+        self, match_id: int, summary: IngestionSummary
+    ) -> list[NormalizedEvent] | None:
+        """Validated events, or ``None`` when the file is unavailable."""
         source_file = str(self.loader.events_path(match_id))
         if not self.loader.has_events(match_id):
             summary.report_missing(MissingFile(source_file, "events", match_id))
-            return
+            return None
         summary.event_files_found += 1
 
         records: list[NormalizedEvent] = []
@@ -450,9 +525,7 @@ class IngestionService:
             seen_indexes.add(record.index_in_match)
             records.append(record)
 
-        summary.events_imported += self.repository.upsert_events(match, records)
-        summary.passes_imported += sum(1 for record in records if record.pass_detail is not None)
-        summary.shots_imported += sum(1 for record in records if record.shot_detail is not None)
+        return records
 
     @staticmethod
     def _count_skipped_event(summary: IngestionSummary, type_name: str | None) -> None:
