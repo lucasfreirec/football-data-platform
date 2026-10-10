@@ -1,6 +1,6 @@
 [project]
 name = "football-data-platform"
-version = "0.1.0"
+version = "0.2.0"
 description = "Import StatsBomb Open Data for UEFA Champions League 2017/18 and expose it through a FastAPI REST API."
 readme = "README.md"
 requires-python = ">=3.12"

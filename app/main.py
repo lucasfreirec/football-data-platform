@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from app import __version__
 from app.api.routes import (
     analytics,
     competitions,
@@ -38,7 +39,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(
         title="Football Data Platform",
         description=DESCRIPTION,
-        version="0.2.0",
+        version=__version__,
     )
 
     app.include_router(health.router)
