@@ -21,6 +21,7 @@ from tests.integration.conftest import _connect, reset_schema
 pytestmark = pytest.mark.integration
 
 V1_REVISION = "09462d11fffe"
+V2_REVISION = "799bbae899b8"
 
 
 def _config(connection: Any) -> Config:
@@ -108,7 +109,7 @@ class TestMigrationChain:
     ) -> None:
         _upgrade(blank_engine, V1_REVISION)
         v1_tables = _tables(blank_engine)
-        _upgrade(blank_engine, "head")
+        _upgrade(blank_engine, V2_REVISION)
 
         assert "pass_details" not in v1_tables
         assert _tables(blank_engine) - v1_tables == {
@@ -116,6 +117,21 @@ class TestMigrationChain:
             "pass_details",
             "shot_details",
         }
+
+    def test_the_jobs_migration_adds_only_the_jobs_table(self, blank_engine: Engine) -> None:
+        _upgrade(blank_engine, V2_REVISION)
+        before = _tables(blank_engine)
+        _upgrade(blank_engine, "head")
+
+        assert _tables(blank_engine) - before == {"processing_jobs"}
+
+    def test_downgrading_the_jobs_migration_leaves_v2_intact(self, blank_engine: Engine) -> None:
+        _upgrade(blank_engine, "head")
+        _downgrade(blank_engine, V2_REVISION)
+
+        assert _current(blank_engine) == V2_REVISION
+        assert "processing_jobs" not in _tables(blank_engine)
+        assert {"source_manifests", "pass_details", "shot_details"} <= _tables(blank_engine)
 
     def test_downgrade_removes_only_the_v2_tables(self, blank_engine: Engine) -> None:
         _upgrade(blank_engine, "head")
