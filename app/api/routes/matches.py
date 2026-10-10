@@ -5,23 +5,15 @@ from __future__ import annotations
 from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Query
 
 from app.api.dependencies import PaginationDep, SessionDep
+from app.api.lookups import require_match
 from app.api.schemas.common import Page
 from app.api.schemas.resources import EventRead, LineupRead, MatchRead
-from app.db.models import Match
 from app.repositories import queries
 
 router = APIRouter(prefix="/matches", tags=["matches"])
-
-
-def _require_match(session: Session, match_id: int) -> Match:
-    match = queries.get_match(session, match_id)
-    if match is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Match not found")
-    return match
 
 
 @router.get(
@@ -70,7 +62,7 @@ def list_matches(
     responses={404: {"description": "Match not found."}},
 )
 def get_match(match_id: int, session: SessionDep) -> MatchRead:
-    return MatchRead.model_validate(_require_match(session, match_id))
+    return MatchRead.model_validate(require_match(session, match_id))
 
 
 @router.get(
@@ -91,7 +83,7 @@ def list_match_events(
     player_id: Annotated[int | None, Query(description="StatsBomb player identifier.")] = None,
     period: Annotated[int | None, Query(description="Match period number.")] = None,
 ) -> Page[EventRead]:
-    match = _require_match(session, match_id)
+    match = require_match(session, match_id)
     items, total = queries.list_match_events(
         session,
         match,
@@ -120,7 +112,7 @@ def list_match_events(
 def list_match_lineups(
     match_id: int, session: SessionDep, pagination: PaginationDep
 ) -> Page[LineupRead]:
-    match = _require_match(session, match_id)
+    match = require_match(session, match_id)
     items, total = queries.list_match_lineups(
         session, match, limit=pagination.limit, offset=pagination.offset
     )

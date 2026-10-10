@@ -67,3 +67,8 @@ class ShotDetail(Base):
 
     event: Mapped[Event] = relationship(back_populates="shot_detail", foreign_keys=[event_id])
     key_pass_event: Mapped[Event | None] = relationship(foreign_keys=[key_pass_event_id])
+
+    @property
+    def key_pass_statsbomb_id(self) -> str | None:
+        """The key pass's public identifier; the integer key stays internal."""
+        return None if self.key_pass_event is None else self.key_pass_event.statsbomb_id

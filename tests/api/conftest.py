@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
@@ -36,5 +37,14 @@ def client(api: FastAPI) -> Iterator[TestClient]:
 @pytest.fixture
 def seeded_client(client: TestClient, session: Session, raw_source_dir) -> TestClient:  # type: ignore[no-untyped-def]
     IngestionService(SourceLoader(raw_source_dir), session).run()
+    session.commit()
+    return client
+
+
+@pytest.fixture
+def v2_client(client: TestClient, session: Session, v2_source_dir: Path) -> TestClient:
+    """Both V2 seasons imported: two matches in 2017/18 and one in 2016/17."""
+    for season in ("2017/2018", "2016/2017"):
+        IngestionService(SourceLoader(v2_source_dir), session, season_name=season).run()
     session.commit()
     return client

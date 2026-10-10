@@ -7,20 +7,12 @@ envelope without duplicating count queries.
 from __future__ import annotations
 
 from datetime import date
-from typing import Any
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.db.models import Competition, Event, Lineup, Match, Player, Season, Team
-
-
-def _paginate(
-    session: Session, statement: Select[Any], *, limit: int, offset: int
-) -> tuple[list[Any], int]:
-    total = session.scalar(select(func.count()).select_from(statement.subquery())) or 0
-    items = list(session.scalars(statement.limit(limit).offset(offset)).unique())
-    return items, total
+from app.repositories.pagination import paginate as _paginate
 
 
 def list_competitions(
@@ -32,6 +24,14 @@ def list_competitions(
 
 def get_competition(session: Session, competition_id: int) -> Competition | None:
     return session.scalar(select(Competition).where(Competition.statsbomb_id == competition_id))
+
+
+def get_season(session: Session, competition: Competition, season_id: int) -> Season | None:
+    return session.scalar(
+        select(Season).where(
+            Season.competition_id == competition.id, Season.statsbomb_id == season_id
+        )
+    )
 
 
 def list_seasons(

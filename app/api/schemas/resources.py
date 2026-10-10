@@ -61,7 +61,9 @@ class MatchRead(ExternalIdModel):
     last_updated: datetime | None = None
 
 
-class EventRead(BaseModel):
+class EventBase(BaseModel):
+    """The canonical event fields, without the unmodelled ``raw_data`` fragment."""
+
     model_config = ORM_CONFIG
 
     id: str = Field(validation_alias="statsbomb_id", description="StatsBomb event UUID.")
@@ -78,6 +80,9 @@ class EventRead(BaseModel):
     location_x: float | None = None
     location_y: float | None = None
     outcome_name: str | None = None
+
+
+class EventRead(EventBase):
     raw_data: dict[str, Any] | None = None
 
 
