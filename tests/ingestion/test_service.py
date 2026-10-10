@@ -213,9 +213,12 @@ class TestMissingAndMalformedFiles:
         assert summary.matches_processed == 2
         assert summary.events_imported == 0
         assert summary.lineups_imported == 0
-        reasons = [record.reason for record in summary.rejected]
-        assert reasons.count("Event file not found") == 2
-        assert reasons.count("Lineup file not found") == 2
+        # V2: unavailable files are reported separately and are not validation failures.
+        assert summary.validation_failures == 0
+        assert summary.event_files_missing == 2
+        assert summary.lineup_files_missing == 2
+        kinds = sorted(item.kind for item in summary.missing_files)
+        assert kinds == ["events", "events", "lineups", "lineups"]
 
     def test_malformed_match_is_skipped_and_the_rest_imported(
         self, tmp_path: Path, raw_source_dir: Path, session: Session

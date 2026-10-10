@@ -14,16 +14,31 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import Competition, Event, Lineup, Match, Player, Season, Team
+from app.core.logging import get_logger
+from app.db.models import (
+    Competition,
+    Event,
+    Lineup,
+    Match,
+    PassDetail,
+    Player,
+    Season,
+    ShotDetail,
+    Team,
+)
 from app.ingestion.normalizers import (
     NormalizedCompetition,
     NormalizedEvent,
     NormalizedLineupEntry,
     NormalizedMatch,
+    NormalizedPassDetail,
     NormalizedPlayer,
     NormalizedSeason,
+    NormalizedShotDetail,
     NormalizedTeam,
 )
+
+logger = get_logger(__name__)
 
 
 class IngestionRepository:
@@ -144,11 +159,15 @@ class IngestionRepository:
         return match
 
     def upsert_events(self, match: Match, records: Sequence[NormalizedEvent]) -> int:
-        """Write a match's events, returning how many rows were inserted or updated."""
+        """Write a match's events and their pass/shot details in the caller's transaction.
+
+        Returns how many events were inserted or updated.
+        """
         existing = {
             event.statsbomb_id: event
             for event in self.session.scalars(select(Event).where(Event.match_id == match.id))
         }
+        persisted: list[tuple[Event, NormalizedEvent]] = []
         for record in records:
             values: dict[str, Any] = {
                 "index_in_match": record.index_in_match,
@@ -175,8 +194,118 @@ class IngestionRepository:
                 existing[record.statsbomb_id] = event
             else:
                 _apply(event, values)
+            persisted.append((event, record))
+
+        # Flush first so every event has a primary key for detail rows and key-pass links.
         self.session.flush()
+        self._sync_event_details(match, persisted, existing)
         return len(records)
+
+    def _sync_event_details(
+        self,
+        match: Match,
+        persisted: Sequence[tuple[Event, NormalizedEvent]],
+        events_by_source_id: dict[str, Event],
+    ) -> None:
+        pass_rows = {
+            row.event_id: row
+            for row in self.session.scalars(
+                select(PassDetail)
+                .join(Event, PassDetail.event_id == Event.id)
+                .where(Event.match_id == match.id)
+            )
+        }
+        shot_rows = {
+            row.event_id: row
+            for row in self.session.scalars(
+                select(ShotDetail)
+                .join(Event, ShotDetail.event_id == Event.id)
+                .where(Event.match_id == match.id)
+            )
+        }
+        for event, record in persisted:
+            self._sync_pass_detail(event, record.pass_detail, pass_rows.get(event.id))
+            self._sync_shot_detail(
+                event, record.shot_detail, shot_rows.get(event.id), events_by_source_id
+            )
+        self.session.flush()
+
+    def _sync_pass_detail(
+        self, event: Event, detail: NormalizedPassDetail | None, row: PassDetail | None
+    ) -> None:
+        if detail is None:
+            # The event is no longer a Pass, so its detail row would be stale.
+            if row is not None:
+                self.session.delete(row)
+            return
+        values: dict[str, Any] = {
+            "recipient_player_id": self._player_id(detail.recipient),
+            "length": detail.length,
+            "angle": detail.angle,
+            "height_name": detail.height_name,
+            "end_location_x": detail.end_location_x,
+            "end_location_y": detail.end_location_y,
+            "outcome_name": detail.outcome_name,
+            "body_part_name": detail.body_part_name,
+            "technique_name": detail.technique_name,
+            "type_name": detail.type_name,
+            "is_cross": detail.is_cross,
+            "is_cut_back": detail.is_cut_back,
+            "is_switch": detail.is_switch,
+            "is_assisted_shot": detail.is_assisted_shot,
+            "is_goal_assist": detail.is_goal_assist,
+        }
+        if row is None:
+            self.session.add(PassDetail(event_id=event.id, **_present(values)))
+        else:
+            _apply(row, values)
+
+    def _sync_shot_detail(
+        self,
+        event: Event,
+        detail: NormalizedShotDetail | None,
+        row: ShotDetail | None,
+        events_by_source_id: dict[str, Event],
+    ) -> None:
+        if detail is None:
+            if row is not None:
+                self.session.delete(row)
+            return
+        values: dict[str, Any] = {
+            "key_pass_event_id": self._key_pass_event_id(event, detail, events_by_source_id),
+            "end_location_x": detail.end_location_x,
+            "end_location_y": detail.end_location_y,
+            "statsbomb_xg": detail.statsbomb_xg,
+            "outcome_name": detail.outcome_name,
+            "body_part_name": detail.body_part_name,
+            "technique_name": detail.technique_name,
+            "type_name": detail.type_name,
+            "first_time": detail.first_time,
+            "one_on_one": detail.one_on_one,
+            "open_goal": detail.open_goal,
+        }
+        if row is None:
+            self.session.add(ShotDetail(event_id=event.id, **_present(values)))
+        else:
+            _apply(row, values)
+
+    @staticmethod
+    def _key_pass_event_id(
+        event: Event, detail: NormalizedShotDetail, events_by_source_id: dict[str, Event]
+    ) -> int | None:
+        if detail.key_pass_statsbomb_id is None:
+            return None
+        key_pass = events_by_source_id.get(detail.key_pass_statsbomb_id)
+        if key_pass is None:
+            # The shot is still valid, so keep it and leave the link unset.
+            logger.warning(
+                "Shot %s references key pass %s, which is not an event of match %s",
+                event.statsbomb_id,
+                detail.key_pass_statsbomb_id,
+                event.match_id,
+            )
+            return None
+        return key_pass.id
 
     def upsert_lineups(self, match: Match, records: Sequence[NormalizedLineupEntry]) -> int:
         """Write a match's squad rows, returning how many were inserted or updated."""

@@ -65,6 +65,7 @@ def ingest(
         )
 
     loader = SourceLoader(source_dir or settings.statsbomb_source_dir)
+    service: IngestionService | None = None
     try:
         with session_scope() as session:
             service = IngestionService(
@@ -72,8 +73,10 @@ def ingest(
             )
             summary = service.run()
     except SourceError as exc:
+        _print_failed_summary(service)
         _fail(EXIT_SOURCE, str(exc))
     except PersistenceError as exc:
+        _print_failed_summary(service)
         _fail(EXIT_DATABASE, str(exc))
 
     _print_summary(summary)
@@ -89,6 +92,12 @@ def _load_settings() -> Settings:
 def _print_summary(summary: IngestionSummary) -> None:
     for line in summary.as_lines():
         typer.echo(line)
+
+
+def _print_failed_summary(service: IngestionService | None) -> None:
+    """A run that failed after resolving its season still has a manifest worth showing."""
+    if service is not None and service.summary is not None:
+        _print_summary(service.summary)
 
 
 def _fail(code: int, message: str) -> NoReturn:

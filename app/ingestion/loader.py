@@ -20,6 +20,8 @@ COMPETITIONS_FILE = "competitions.json"
 MATCHES_DIR = "matches"
 EVENTS_DIR = "events"
 LINEUPS_DIR = "lineups"
+SOURCE_REVISION_FILE = "SOURCE_REVISION"
+SOURCE_VERSION_MAX_LENGTH = 128
 
 
 class SourceLoader:
@@ -64,6 +66,17 @@ class SourceLoader:
 
     def has_lineups(self, match_id: int) -> bool:
         return self.lineups_path(match_id).is_file()
+
+    def source_version(self) -> str | None:
+        """Revision identifier written by the download script, or ``None`` if absent."""
+        path = self.source_dir / SOURCE_REVISION_FILE
+        if not path.is_file():
+            return None
+        try:
+            text = path.read_text(encoding="utf-8").strip()
+        except OSError as exc:
+            raise SourceError(f"Could not read {path}: {exc}") from exc
+        return text[:SOURCE_VERSION_MAX_LENGTH] or None
 
     @staticmethod
     def _read_object_array(path: Path) -> list[dict[str, Any]]:
