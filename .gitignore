@@ -34,3 +34,8 @@ htmlcov/
 # Data: ignore everything except small committed test fixtures
 data/*
 !data/.gitkeep
+
+# Generated artifacts are ignored, except the small benchmark reference run, which is
+# committed on purpose (see the README) so results can be compared against.
+artifacts/*
+!artifacts/benchmarks/
