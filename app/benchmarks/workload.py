@@ -1,9 +1,9 @@
 """A deterministic, StatsBomb-shaped workload of many independent matches.
 
-The real open data holds one Champions League match for the season, which cannot
-show concurrency. This generates N matches in the same file layout, passing the
-real validators, so the benchmark exercises the real import code. Given the same
-arguments it always writes the same files.
+This deterministic generator creates N matches in the same file layout, passing
+the real validators. It is useful for repeatable benchmark runs even when a
+source data set is unavailable. Given the same arguments it always writes the
+same files.
 
 Teams and players are shared between matches on purpose: workers importing
 different matches then contend on the same reference rows, as they would for a

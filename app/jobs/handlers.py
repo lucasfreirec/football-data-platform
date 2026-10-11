@@ -28,11 +28,7 @@ from app.core.exceptions import (
 from app.core.logging import get_logger
 from app.db.models import JobType, Match, ProcessingJob
 from app.ingestion.loader import SourceLoader
-from app.ingestion.service import (
-    DEFAULT_COMPETITION_NAME,
-    DEFAULT_SEASON_NAME,
-    IngestionService,
-)
+from app.ingestion.service import IngestionService
 from app.jobs.paths import resolve_source_dir
 from app.repositories import stats
 
@@ -83,8 +79,8 @@ def ingest_match(session: Session, job: ProcessingJob, settings: Settings) -> di
     service = IngestionService(
         SourceLoader(source_dir),
         session,
-        competition_name=job.payload.get("competition", DEFAULT_COMPETITION_NAME),
-        season_name=job.payload.get("season", DEFAULT_SEASON_NAME),
+        competition_name=job.payload.get("competition", settings.default_competition),
+        season_name=job.payload.get("season", settings.default_season),
     )
     try:
         summary = service.ingest_match(statsbomb_match_id)

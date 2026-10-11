@@ -31,12 +31,12 @@ class JobCreate(BaseModel):
     competition: str | None = Field(
         default=None,
         max_length=128,
-        description="Ingest only. Competition name; defaults to Champions League.",
+        description="Ingest only. Competition name; defaults to the configured source scope.",
     )
     season: str | None = Field(
         default=None,
         max_length=32,
-        description="Ingest only. Season name; defaults to 2017/2018.",
+        description="Ingest only. Season name; defaults to the configured source scope.",
     )
 
     @field_validator("source_path")

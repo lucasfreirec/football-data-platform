@@ -3,10 +3,10 @@
 #
 # Usage:
 #   ./scripts/fetch_statsbomb_data.sh [COMPETITION NAME] [SEASON NAME] [TARGET_DIR]
-#   ./scripts/fetch_statsbomb_data.sh Champions League 2017/2018 ./data/raw
+#   ./scripts/fetch_statsbomb_data.sh "FIFA World Cup" 2022 ./data/raw
 #
 # The competition name may be quoted or not. Names are matched case-insensitively
-# against competitions.json, and default to Champions League, 2017/2018, ./data/raw.
+# against competitions.json, and default to FIFA World Cup, 2022, ./data/raw.
 #
 # Downloads are pinned to one commit of the open-data repository, recorded in
 # TARGET_DIR/SOURCE_REVISION, so the same command yields the same files. A file
@@ -24,8 +24,8 @@
 # StatsBomb Open Data does not hold every historical match.
 set -euo pipefail
 
-DEFAULT_COMPETITION="Champions League"
-DEFAULT_SEASON="2017/2018"
+DEFAULT_COMPETITION="FIFA World Cup"
+DEFAULT_SEASON="2022"
 DEFAULT_TARGET="./data/raw"
 
 die() {
@@ -55,7 +55,7 @@ if [ "$#" -gt 0 ]; then
       season_index=$position
     fi
   done
-  [ "$season_index" -gt 0 ] || die "no season such as 2017/2018 found in the arguments: $*"
+  [ "$season_index" -gt 0 ] || die "no season such as 2022 found in the arguments: $*"
 
   if [ "$season_index" -gt 1 ]; then
     COMPETITION="${*:1:$((season_index - 1))}"

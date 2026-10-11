@@ -2,7 +2,7 @@
 
 A Python platform that imports StatsBomb Open Data, stores normalized football data in PostgreSQL, and exposes it through FastAPI. It also runs ingestion and match-statistics jobs asynchronously with Redis-backed Celery workers.
 
-The default data is UEFA Champions League 2017/18. StatsBomb Open Data currently provides one match for this season, so every result describes the imported source data—not the complete historical tournament.
+The default data is the FIFA World Cup 2022 (`competition_id=43`, `season_id=106`), which provides a meaningful multi-match workload for asynchronous processing, analytics, and worker benchmarks. The Champions League 2017/18 final remains compatible as a small smoke-test dataset when explicitly selected.
 
 ## Features
 
@@ -37,7 +37,7 @@ cp .env.example .env
 uv sync --all-groups
 
 # Download the StatsBomb source files.
-./scripts/fetch_statsbomb_data.sh Champions League 2017/2018 ./data/raw
+./scripts/fetch_statsbomb_data.sh "FIFA World Cup" 2022 ./data/raw
 
 # Start PostgreSQL, Redis, migrations, the API, and a worker.
 docker compose up --build -d
@@ -61,12 +61,13 @@ Use either the explicit CLI or a background job.
 
 ```bash
 # Direct import
-uv run python -m app.ingestion.cli ingest --source-dir ./data/raw
+uv run python -m app.ingestion.cli ingest --source-dir ./data/raw \
+  --competition "FIFA World Cup" --season 2022
 
 # Background import; the worker has data/raw mounted read-only.
 curl -X POST http://localhost:8000/api/v1/jobs \
   -H 'content-type: application/json' \
-  -d '{"job_type":"ingest_match","match_id":18245}'
+  -d '{"job_type":"ingest_match","match_id":3857276,"competition":"FIFA World Cup","season":"2022"}'
 
 # Check the returned job ID
 curl http://localhost:8000/api/v1/jobs/<job-id>
@@ -76,10 +77,10 @@ After the import completes:
 
 ```bash
 curl 'http://localhost:8000/api/v1/competitions'
-curl 'http://localhost:8000/api/v1/matches?competition_id=16&season_id=1'
-curl 'http://localhost:8000/api/v1/matches/18245/passes?limit=5'
-curl 'http://localhost:8000/api/v1/matches/18245/shots?limit=5'
-curl 'http://localhost:8000/api/v1/competitions/16/seasons/1/player-stats?limit=10'
+curl 'http://localhost:8000/api/v1/matches?competition_id=43&season_id=106'
+curl 'http://localhost:8000/api/v1/matches/3857276/passes?limit=5'
+curl 'http://localhost:8000/api/v1/matches/3857276/shots?limit=5'
+curl 'http://localhost:8000/api/v1/competitions/43/seasons/106/player-stats?limit=10'
 ```
 
 Run additional workers locally:
@@ -154,10 +155,3 @@ monitoring/    Prometheus and Grafana configuration
 scripts/       StatsBomb download script
 tests/         unit and integration tests
 ```
-
-## Engineering notes
-
-- This is a modular monolith: simple to run locally, with API and workers able to scale independently.
-- PostgreSQL is the durable source of truth; Redis is only the job transport.
-- Statistics are derived from imported StatsBomb records and are not an official StatsBomb analytics product.
-- No frontend, authentication, production database cluster, or distributed data-processing system is included.

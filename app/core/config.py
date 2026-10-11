@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     statsbomb_source_dir: Path = Path("./data/raw")
     statsbomb_base_url: str | None = None
+    # These preserve the original small fixture data set unless deployment config overrides them.
+    # Docker Compose and .env.example select the larger FIFA World Cup 2022 source.
+    default_competition: str = "Champions League"
+    default_season: str = "2017/2018"
     api_host: str = "0.0.0.0"
     api_port: int = Field(default=8000, ge=1, le=65535)
 

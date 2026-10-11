@@ -18,8 +18,6 @@ from app.core.logging import configure_logging, get_logger
 from app.db.session import check_database_connection, session_scope
 from app.ingestion.loader import SourceLoader
 from app.ingestion.service import (
-    DEFAULT_COMPETITION_NAME,
-    DEFAULT_SEASON_NAME,
     IngestionService,
     IngestionSummary,
 )
@@ -47,11 +45,11 @@ def ingest(
         ),
     ] = None,
     competition: Annotated[
-        str, typer.Option("--competition", help="Competition name to import.")
-    ] = DEFAULT_COMPETITION_NAME,
+        str | None, typer.Option("--competition", help="Competition name to import.")
+    ] = None,
     season: Annotated[
-        str, typer.Option("--season", help="Season name to import.")
-    ] = DEFAULT_SEASON_NAME,
+        str | None, typer.Option("--season", help="Season name to import.")
+    ] = None,
 ) -> None:
     """Import one competition season and print a summary of what was written."""
     settings = _load_settings()
@@ -69,7 +67,10 @@ def ingest(
     try:
         with session_scope() as session:
             service = IngestionService(
-                loader, session, competition_name=competition, season_name=season
+                loader,
+                session,
+                competition_name=competition or settings.default_competition,
+                season_name=season or settings.default_season,
             )
             summary = service.run()
     except SourceError as exc:

@@ -25,8 +25,8 @@ API_PREFIX = "/api/v1"
 logger = get_logger(__name__)
 
 DESCRIPTION = """
-Read access to StatsBomb Open Data imported for the UEFA Champions League
-2017/18 season, plus `/jobs` endpoints to submit and track background processing.
+Read access to StatsBomb Open Data imported for the FIFA World Cup 2022,
+plus `/jobs` endpoints to submit and track background processing.
 
 Resources are addressed by their stable StatsBomb identifiers. Collection
 endpoints are offset-paginated and return an `items` / `limit` / `offset` /
