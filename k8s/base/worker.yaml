@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: football-worker
+  labels: &labels
+    app.kubernetes.io/name: football-worker
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/part-of: football-data-platform
+spec:
+  # No `replicas`: the HorizontalPodAutoscaler owns the count, and setting it here would
+  # reset the scale on every `kubectl apply`.
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: football-worker
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels: *labels
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+        prometheus.io/path: /metrics
+    spec:
+      automountServiceAccountToken: false
+      # On SIGTERM Celery stops taking jobs and finishes the ones it is running; this is how
+      # long it gets. A job cut off anyway is recovered by `reconcile-stale`.
+      terminationGracePeriodSeconds: 90
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: football-worker
+      containers:
+        - name: worker
+          image: football-data-platform
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "app.jobs.worker"]
+          envFrom:
+            - configMapRef:
+                name: football-config
+            - secretRef:
+                name: football-secrets
+          ports:
+            - name: metrics
+              containerPort: 9100
+          # Each slot parses and writes in its own process, so a busy pod uses about
+          # WORKER_CONCURRENCY CPUs; the request is what the HPA's CPU percentage is
+          # measured against.
+          resources:
+            requests:
+              cpu: "1"
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 1Gi
+          # /healthz only says the worker process is alive. It does not touch the broker or
+          # database, so an outage there does not restart every worker at once.
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            periodSeconds: 3
+            failureThreshold: 40
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            periodSeconds: 10
+            timeoutSeconds: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: statsbomb-data
+              mountPath: /data/raw
+              readOnly: true
+            # Prometheus multiprocess files and temporary files.
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        # Prerequisite: a PersistentVolumeClaim holding the StatsBomb open-data layout
+        # (competitions.json, matches/, lineups/, events/). See README.md.
+        - name: statsbomb-data
+          persistentVolumeClaim:
+            claimName: statsbomb-data
+            readOnly: true
+        - name: tmp
+          emptyDir: {}

@@ -1,0 +1,63 @@
+# Applies database migrations. A Job's spec cannot be changed once created, so this is
+# created fresh for each release rather than applied:
+#
+#   kubectl create -f k8s/migrate-job.yaml
+#
+# (generateName gives each run its own name.) Run it before rolling out a new image.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: football-migrate-
+  namespace: football-data
+  labels:
+    app.kubernetes.io/name: football-migrate
+    app.kubernetes.io/component: migrate
+    app.kubernetes.io/part-of: football-data-platform
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 600
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: football-migrate
+        app.kubernetes.io/component: migrate
+        app.kubernetes.io/part-of: football-data-platform
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          # Keep this tag in step with k8s/kustomization.yaml.
+          image: football-data-platform:0.2.0
+          imagePullPolicy: IfNotPresent
+          command: ["alembic", "upgrade", "head"]
+          envFrom:
+            - configMapRef:
+                name: football-config
+            - secretRef:
+                name: football-secrets
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

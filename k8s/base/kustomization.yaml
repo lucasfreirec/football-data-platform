@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: football-data
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - api.yaml
+  - worker.yaml
+  - hpa.yaml
+
+# secret.example.yaml is deliberately NOT listed: create the real Secret yourself
+# (see README.md) so credentials never live in this repository.
+
+# Point this at the image you built and pushed:
+#   kustomize edit set image football-data-platform=registry.example.com/football-data-platform:0.2.0
+images:
+  - name: football-data-platform
+    newTag: "0.2.0"

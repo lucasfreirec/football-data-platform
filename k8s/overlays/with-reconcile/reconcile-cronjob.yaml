@@ -1,0 +1,74 @@
+# Optional: re-queues jobs a crashed worker or a restarted broker left behind.
+#
+#   kubectl apply -k k8s/overlays/with-reconcile
+#
+# Safe to run often: it only touches jobs that have been silent for STALE_JOB_MINUTES.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: football-reconcile-stale
+  labels:
+    app.kubernetes.io/name: football-reconcile
+    app.kubernetes.io/component: reconcile
+    app.kubernetes.io/part-of: football-data-platform
+spec:
+  schedule: "*/10 * * * *"
+  # A run that overlaps the previous one would only race it.
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 300
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: football-reconcile
+            app.kubernetes.io/component: reconcile
+            app.kubernetes.io/part-of: football-data-platform
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: reconcile
+              image: football-data-platform
+              imagePullPolicy: IfNotPresent
+              command:
+                - python
+                - -m
+                - app.jobs.cli
+                - reconcile-stale
+                - --older-than-minutes
+                - "15"
+              envFrom:
+                - configMapRef:
+                    name: football-config
+                - secretRef:
+                    name: football-secrets
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  cpu: 250m
+                  memory: 256Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: tmp
+              emptyDir: {}

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: football-config
+  labels:
+    app.kubernetes.io/part-of: football-data-platform
+data:
+  # Non-secret settings shared by the API, the workers, and the reconcile job.
+  # DATABASE_URL and BROKER_URL carry credentials and live in the football-secrets Secret.
+  APP_ENV: production
+  LOG_LEVEL: INFO
+  STATSBOMB_SOURCE_DIR: /data/raw
+  JOB_QUEUE_NAME: football-jobs
+  JOB_MAX_ATTEMPTS: "3"
+  JOB_RETRY_DELAYS_SECONDS: "5,30,120"
+  STALE_JOB_MINUTES: "15"
+  # Processes per worker pod. Total capacity is this x the number of worker pods.
+  WORKER_CONCURRENCY: "2"
+  WORKER_METRICS_PORT: "9100"

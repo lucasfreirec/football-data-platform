@@ -1,0 +1,39 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: football-worker
+  labels:
+    app.kubernetes.io/name: football-worker
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/part-of: football-data-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: football-worker
+  minReplicas: 1
+  maxReplicas: 5
+  # CPU is a reasonable proxy here because ingestion is CPU-bound parsing. It cannot see a
+  # backlog while workers are idle-waiting, which is why queue-length scaling (KEDA or a
+  # custom metric from football_queue_depth) is listed as future work. Needs metrics-server.
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+    # Scaling down stops pods that may be mid-job; wait before doing it, and go slowly.
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 120
