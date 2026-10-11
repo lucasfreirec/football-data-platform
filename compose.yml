@@ -1,3 +1,19 @@
+x-app: &app
+  # One image for the API, the workers, and migrations; only the command differs.
+  build: .
+  image: football-data-platform:local
+  environment: &app-env
+    # Connection values are built from the same variables the db service uses.
+    DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-football}:${POSTGRES_PASSWORD:-football}@db:5432/${POSTGRES_DB:-football_data}
+    BROKER_URL: redis://broker:6379/0
+    APP_ENV: ${APP_ENV:-development}
+    LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    STATSBOMB_SOURCE_DIR: /data/raw
+    JOB_QUEUE_NAME: ${JOB_QUEUE_NAME:-football-jobs}
+    JOB_MAX_ATTEMPTS: ${JOB_MAX_ATTEMPTS:-3}
+    JOB_RETRY_DELAYS_SECONDS: ${JOB_RETRY_DELAYS_SECONDS:-5,30,120}
+    STALE_JOB_MINUTES: ${STALE_JOB_MINUTES:-15}
+
 services:
   db:
     image: postgres:16-alpine
@@ -31,6 +47,67 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    restart: unless-stopped
+
+  # Applies migrations once and exits; the API and workers wait for it.
+  migrate:
+    <<: *app
+    command: ["alembic", "upgrade", "head"]
+    environment: *app-env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    <<: *app
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      broker:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=3).status == 200 else 1)"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    restart: unless-stopped
+
+  # No container_name and no published port, so `--scale worker=N` works.
+  worker:
+    <<: *app
+    command: ["python", "-m", "app.jobs.worker"]
+    environment:
+      <<: *app-env
+      # Processes per container. Total capacity is WORKER_CONCURRENCY x replicas.
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
+    volumes:
+      - ${STATSBOMB_DATA_DIR:-./data/raw}:/data/raw:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      broker:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      # Answers only if this container's own worker is consuming from the broker.
+      test: ["CMD-SHELL", "celery -A app.jobs.celery_app inspect ping -d celery@$$HOSTNAME --timeout 5"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
+    stop_grace_period: 60s
     restart: unless-stopped
 
 volumes:
