@@ -1,4 +1,4 @@
-# Football Data Platform
+# Football Data Platform (In progress)
 
 A Python platform that imports StatsBomb Open Data, stores normalized football data in PostgreSQL, and exposes it through FastAPI. It also runs ingestion and match-statistics jobs asynchronously with Redis-backed Celery workers.
 
