@@ -1,0 +1,105 @@
+{
+  "uid": "football-platform",
+  "title": "Football Data Platform",
+  "tags": ["football"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Workers up",
+      "description": "Worker processes reporting themselves up. Zero means jobs will queue and never run.",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "none", "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] } }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "sum(football_worker_up) or vector(0)" } ]
+    },
+    {
+      "id": 2, "type": "stat", "title": "Queue depth",
+      "description": "Messages waiting in the broker for a free worker slot. Delayed retries are held by workers and are not counted.",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "none", "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 20 }, { "color": "red", "value": 100 } ] } }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "max(football_queue_depth)" } ]
+    },
+    {
+      "id": 3, "type": "stat", "title": "Jobs running",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "none" }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "sum(football_jobs_running) or vector(0)" } ]
+    },
+    {
+      "id": 4, "type": "stat", "title": "Failed jobs (1h)",
+      "description": "Jobs that failed for good in the last hour.",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "none", "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] } }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "sum(increase(football_jobs_failed_total[1h])) or vector(0)" } ]
+    },
+    {
+      "id": 5, "type": "stat", "title": "API 5xx ratio (5m)",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 0.01 } ] } }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "(sum(rate(football_http_requests_total{status=~\"5..\"}[5m])) or vector(0)) / clamp_min(sum(rate(football_http_requests_total[5m])), 1e-9)" } ]
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "Queue depth vs jobs running",
+      "description": "Depth rising while running stays flat means workers are saturated or down; both flat at zero means idle.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "none" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "max(football_queue_depth)", "legendFormat": "queue depth" },
+        { "refId": "B", "expr": "sum(football_jobs_running)", "legendFormat": "running" },
+        { "refId": "C", "expr": "sum(football_worker_up)", "legendFormat": "workers up" }
+      ]
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "Job outcomes per minute",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "none" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (job_type) (rate(football_jobs_submitted_total[5m])) * 60", "legendFormat": "submitted {{job_type}}" },
+        { "refId": "B", "expr": "sum by (job_type) (rate(football_jobs_completed_total[5m])) * 60", "legendFormat": "completed {{job_type}}" },
+        { "refId": "C", "expr": "sum by (job_type) (rate(football_jobs_retried_total[5m])) * 60", "legendFormat": "retried {{job_type}}" },
+        { "refId": "D", "expr": "sum by (job_type) (rate(football_jobs_failed_total[5m])) * 60", "legendFormat": "failed {{job_type}}" }
+      ]
+    },
+    {
+      "id": 8, "type": "timeseries", "title": "Job duration (p50 / p95)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.5, sum by (le, job_type) (rate(football_job_duration_seconds_bucket{outcome=\"completed\"}[5m])))", "legendFormat": "p50 {{job_type}}" },
+        { "refId": "B", "expr": "histogram_quantile(0.95, sum by (le, job_type) (rate(football_job_duration_seconds_bucket{outcome=\"completed\"}[5m])))", "legendFormat": "p95 {{job_type}}" }
+      ]
+    },
+    {
+      "id": 9, "type": "timeseries", "title": "Jobs running by type",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "none" }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "sum by (job_type) (football_jobs_running)", "legendFormat": "{{job_type}}" } ]
+    },
+    {
+      "id": 10, "type": "timeseries", "title": "API requests per second by status",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "sum by (status) (rate(football_http_requests_total[5m]))", "legendFormat": "{{status}}" } ]
+    },
+    {
+      "id": 11, "type": "timeseries", "title": "API p95 latency by route",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "histogram_quantile(0.95, sum by (le, route) (rate(football_http_request_duration_seconds_bucket[5m])))", "legendFormat": "{{route}}" } ]
+    }
+  ]
+}

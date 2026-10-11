@@ -11,9 +11,12 @@ Needs ``TEST_DATABASE_URL`` (a scratch database) and a reachable Redis, by defau
 from __future__ import annotations
 
 import os
+import socket
 import subprocess
 import sys
 import time
+import urllib.error
+import urllib.request
 import uuid
 from collections.abc import Iterator
 from pathlib import Path
@@ -58,11 +61,15 @@ def stack(
     """A running worker process plus the Celery app the API publishes through."""
     _require_redis()
     queue_name = f"football-test-{uuid.uuid4().hex[:8]}"
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        metrics_port = probe.getsockname()[1]
     env = {
         **os.environ,
         "DATABASE_URL": TEST_DATABASE_URL or "",
         "BROKER_URL": BROKER_URL,
         "JOB_QUEUE_NAME": queue_name,
+        "WORKER_METRICS_PORT": str(metrics_port),
         "STATSBOMB_SOURCE_DIR": str(v2_source_dir_module),
         "JOB_RETRY_DELAYS_SECONDS": "1,1,1",
         "LOG_LEVEL": "INFO",
@@ -89,7 +96,12 @@ def stack(
         pytest.fail(f"the worker never became ready:\n{log_path.read_text()[-2000:]}")
 
     try:
-        yield {"celery": celery_app, "queue_name": queue_name, "log": log_path}
+        yield {
+            "celery": celery_app,
+            "queue_name": queue_name,
+            "log": log_path,
+            "metrics_url": f"http://127.0.0.1:{metrics_port}",
+        }
     finally:
         process.terminate()
         try:
@@ -308,3 +320,79 @@ def test_the_worker_logs_each_attempt_with_its_context(
         "outcome=completed",
     ):
         assert field in line
+
+
+def scrape(stack: dict[str, Any]) -> dict[tuple[str, tuple[tuple[str, str], ...]], float]:
+    """The worker's /metrics as {(sample name, sorted labels): value}."""
+    from prometheus_client.parser import text_string_to_metric_families
+
+    with urllib.request.urlopen(f"{stack['metrics_url']}/metrics", timeout=5) as response:
+        assert response.headers["Content-Type"].startswith("text/plain")
+        body = response.read().decode()
+    return {
+        (sample.name, tuple(sorted(sample.labels.items()))): sample.value
+        for family in text_string_to_metric_families(body)
+        for sample in family.samples
+    }
+
+
+def value(
+    samples: dict[tuple[str, tuple[tuple[str, str], ...]], float], name: str, **labels: str
+) -> float:
+    return samples.get((name, tuple(sorted(labels.items()))), 0.0)
+
+
+def test_the_worker_serves_a_liveness_endpoint_independent_of_its_dependencies(
+    stack: dict[str, Any],
+) -> None:
+    with urllib.request.urlopen(f"{stack['metrics_url']}/healthz", timeout=5) as response:
+        assert response.status == 200
+    with pytest.raises(urllib.error.HTTPError) as unknown:
+        urllib.request.urlopen(f"{stack['metrics_url']}/nope", timeout=5)
+    assert unknown.value.code == 404
+
+
+def test_worker_metrics_count_completed_and_failed_jobs(
+    api: TestClient, stack: dict[str, Any]
+) -> None:
+    before = scrape(stack)
+    kind = {"job_type": "ingest_match"}
+
+    wait_for(api, submit(api, 9001), {"completed"})
+    wait_for(api, submit(api, 9002, source_path="no/such/dir"), {"failed"})
+    time.sleep(0.5)
+    after = scrape(stack)
+
+    def delta(name: str, **labels: str) -> float:
+        return value(after, name, **labels) - value(before, name, **labels)
+
+    # These come from the pool processes, merged by the exporter in the parent process.
+    assert delta("football_jobs_completed_total", **kind) == 1
+    assert delta("football_jobs_failed_total", **kind) == 1
+    assert delta("football_job_duration_seconds_count", outcome="completed", **kind) == 1
+    assert delta("football_job_duration_seconds_count", outcome="failed", **kind) == 1
+    assert value(after, "football_jobs_running", **kind) == 0
+    assert any(name == "football_worker_up" and v == 1 for (name, _labels), v in after.items()), (
+        "the worker should report itself up"
+    )
+    assert value(after, "football_queue_depth", queue=stack["queue_name"]) == 0
+
+
+def test_worker_metrics_count_retries(
+    api: TestClient, pg_engine: Engine, stack: dict[str, Any]
+) -> None:
+    before = value(scrape(stack), "football_jobs_retried_total", job_type="ingest_match")
+    key = handlers._advisory_key("ingest_match", 9001)
+    blocker = pg_engine.connect()
+    blocker.execute(text("SELECT pg_advisory_lock(:k)"), {"k": key})
+    try:
+        job_id = submit(api, 9001)
+        wait_for(api, job_id, {"retrying"})
+        time.sleep(0.5)
+        during = scrape(stack)
+    finally:
+        blocker.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": key})
+        blocker.close()
+    wait_for(api, job_id, {"completed"})
+
+    assert value(during, "football_jobs_retried_total", job_type="ingest_match") > before

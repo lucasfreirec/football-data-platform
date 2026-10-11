@@ -17,6 +17,7 @@ from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
 from app.db.session import check_database_connection
 from app.jobs.celery_app import celery_app
+from app.observability.multiproc import enable_multiprocess
 
 logger = get_logger(__name__)
 
@@ -73,6 +74,10 @@ def main(argv: list[str] | None = None) -> int:
         # state uninitialised and fails the first task. Linux, where the containers run,
         # forks and does not need this.
         os.environ.setdefault("FORKED_BY_MULTIPROCESSING", "1")
+
+    # Pool processes record metrics; this process serves them. prometheus_client reads this
+    # directory when it is first imported, which happens when Celery loads the tasks below.
+    enable_multiprocess()
 
     settings = get_settings()
     parser = argparse.ArgumentParser(description="Run a football job worker.")

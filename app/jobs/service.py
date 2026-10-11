@@ -20,6 +20,7 @@ from app.core.logging import get_logger
 from app.db.models import JobStatus, JobType, ProcessingJob
 from app.jobs import repository
 from app.jobs.queue import JobQueue
+from app.observability.metrics import JOBS_RETRIED, JOBS_SUBMITTED, job_type_label
 
 logger = get_logger(__name__)
 
@@ -75,6 +76,7 @@ class JobService:
                 raise
             return Submission(winner, created=False)
 
+        JOBS_SUBMITTED.labels(job_type_label(job.job_type)).inc()
         self._enqueue(job)
         return Submission(job, created=True)
 
@@ -97,6 +99,7 @@ class JobService:
                 "Another active job already exists for this match; wait for it or reuse it."
             ) from exc
 
+        JOBS_RETRIED.labels(job_type_label(job.job_type)).inc()
         self._enqueue(job)
         return job
 

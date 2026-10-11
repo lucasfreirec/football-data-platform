@@ -216,6 +216,8 @@ def run_once(
         "DATABASE_URL": database_url,
         "BROKER_URL": broker_url,
         "JOB_QUEUE_NAME": queue_name,
+        # Pools on one host would all contend for the same exporter port.
+        "WORKER_METRICS_PORT": "0",
         "STATSBOMB_SOURCE_DIR": str(source_dir),
         "LOG_LEVEL": "WARNING",
     }

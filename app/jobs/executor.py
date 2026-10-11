@@ -42,6 +42,14 @@ from app.db.models import JobStatus, ProcessingJob
 from app.jobs import repository
 from app.jobs.handlers import get_handler
 from app.jobs.queue import JobQueue
+from app.observability.metrics import (
+    JOB_DURATION,
+    JOBS_COMPLETED,
+    JOBS_FAILED,
+    JOBS_RETRIED,
+    JOBS_RUNNING,
+    job_type_label,
+)
 
 logger = get_logger(__name__)
 
@@ -154,30 +162,37 @@ def execute_job(
         logger.info("job_skipped job_id=%s worker=%s reason=not_claimable", job_id, worker)
         return SKIPPED
 
+    label = job_type_label(claim.job_type)
+    JOBS_RUNNING.labels(label).inc()
     outcome = FAILED
     try:
-        handler = get_handler(claim.job_type)
-        with session_factory() as session:
-            try:
-                job = session.get(ProcessingJob, job_id)
-                if job is None:
-                    raise PermanentJobError("The job no longer exists.")
-                result = handler(session, job, settings)
-                result["worker"] = worker
-                now = repository.utcnow()
-                job.status = JobStatus.completed.value
-                job.result = result
-                job.error_message = None
-                job.completed_at = now
-                job.updated_at = now
-                session.commit()
-            except BaseException:
-                session.rollback()
-                raise
-        outcome = COMPLETED
-    except Exception as exc:
-        outcome = _record_failure(session_factory, queue, settings, job_id, claim, exc)
+        try:
+            handler = get_handler(claim.job_type)
+            with session_factory() as session:
+                try:
+                    job = session.get(ProcessingJob, job_id)
+                    if job is None:
+                        raise PermanentJobError("The job no longer exists.")
+                    result = handler(session, job, settings)
+                    result["worker"] = worker
+                    now = repository.utcnow()
+                    job.status = JobStatus.completed.value
+                    job.result = result
+                    job.error_message = None
+                    job.completed_at = now
+                    job.updated_at = now
+                    session.commit()
+                except BaseException:
+                    session.rollback()
+                    raise
+            outcome = COMPLETED
+        except Exception as exc:
+            outcome = _record_failure(session_factory, queue, settings, job_id, claim, exc)
+    finally:
+        JOBS_RUNNING.labels(label).dec()
 
+    duration = time.perf_counter() - started
+    _observe(label, outcome, duration)
     logger.info(
         "job_finished job_id=%s job_type=%s match_id=%s attempt=%d/%d worker=%s "
         "duration_s=%.3f outcome=%s",
@@ -187,10 +202,17 @@ def execute_job(
         claim.attempt,
         claim.max_attempts,
         worker,
-        time.perf_counter() - started,
+        duration,
         outcome,
     )
     return outcome
+
+
+def _observe(job_type: str, outcome: str, duration: float) -> None:
+    JOB_DURATION.labels(job_type, outcome).observe(duration)
+    counter = {COMPLETED: JOBS_COMPLETED, RETRYING: JOBS_RETRIED, FAILED: JOBS_FAILED}.get(outcome)
+    if counter is not None:
+        counter.labels(job_type).inc()
 
 
 def _record_failure(

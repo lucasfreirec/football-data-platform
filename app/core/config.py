@@ -43,7 +43,8 @@ class Settings(BaseSettings):
     broker_url: str = "redis://localhost:6379/0"
     job_queue_name: str = Field(default="football-jobs", min_length=1, max_length=64)
     worker_concurrency: int = Field(default=2, ge=1, le=64)
-    worker_metrics_port: int = Field(default=9100, ge=1, le=65535)
+    # 0 disables the worker's metrics/health endpoint.
+    worker_metrics_port: int = Field(default=9100, ge=0, le=65535)
     job_max_attempts: int = Field(default=3, ge=1, le=10)
     # Seconds to wait before attempt 2, 3, ...; the last value repeats if attempts outrun the list.
     job_retry_delays_seconds: str = "5,30,120"

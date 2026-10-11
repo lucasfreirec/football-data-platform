@@ -18,6 +18,7 @@ from app.api.routes import (
 )
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging, get_logger
+from app.observability import api as observability
 
 API_PREFIX = "/api/v1"
 
@@ -43,6 +44,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         version=__version__,
     )
 
+    observability.install(app, API_PREFIX)
     app.include_router(health.router)
     for router in (
         competitions.router,
